@@ -1,0 +1,17 @@
+{
+  "name": "sportangebot-cli",
+  "version": "1.0.0",
+  "description": "Are you bored of the not-so-pretty website to get reservations to benefit from the campus sport opportunities? Then you are at the right place",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Mehmet Fatih Sanver",
+  "license": "ISC",
+  "dependencies": {
+    "inquirer": "^9.2.23",
+    "puppeteer": "^22.10.0"
+  }
+}
