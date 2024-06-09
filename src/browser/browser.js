@@ -3,8 +3,8 @@ import puppeteer from 'puppeteer';
 (async () => {
   // Launch the browser and open a new blank page
   const browser = await puppeteer.launch({
-    headless: 'shell' // Set to true if you don't need to see the browser actions
-    // slowMo: 250 // Uncomment this line to slow down operations by 250ms for better observation
+    headless: false, // Set to true if you don't need to see the browser actions
+    slowMo: 150 // Uncomment this line to slow down operations by 250ms for better observation
   });
   const page = await browser.newPage();
 
