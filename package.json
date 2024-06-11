@@ -11,6 +11,8 @@
   "author": "Mehmet Fatih Sanver",
   "license": "ISC",
   "dependencies": {
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
     "inquirer": "^9.2.23",
     "puppeteer": "^22.10.0"
   }
