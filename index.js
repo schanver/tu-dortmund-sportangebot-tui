@@ -39,7 +39,7 @@ const menu = async () => {
     switch(menuScreen.menuOptions)
   {
     case menuChoices[0]:
-      await bookSession("judo");
+      await bookSession();
       break;
     case menuChoices[1]:
       break;
