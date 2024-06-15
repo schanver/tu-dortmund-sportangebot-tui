@@ -54,35 +54,47 @@ export const bookSession = async () => {
     }); 
     console.log(courses.courseName); 
 
-  /*const browser = await puppeteer.launch({headless: false});
+  const browser = await puppeteer.launch({headless: 'shell' });
   const page = await browser.newPage();
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    const url = request.url();
+    const resourceType = request.resourceType();
+    if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'media' || url.endsWith('.svg')) {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  });
+
+
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
-      waitUntil: 'networkidle2', // Ensure the page is fully loaded
-      timeout: 6000
+     // waitUntil: 'networkidle0', // Ensure the page is fully loaded
+      timeout: 20000
     });
-  await page.setViewport({ width: 1080, height: 1024 });
+  //await page.setViewport({ width: 1080, height: 1024 });
   try {
     // Wait for the main div to load
     await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
     const container = await page.$('div#bs_content dl.bs_menu');
     if( container ) {
-      console.log("Found the container, looking through the courses for " + courseName);
+      console.log("Found the container, looking through the courses for " + courses.courseName);
       const anchors = await page.$$('a');
       if( anchors.length > 0 ) 
       {
         let found = false;
         for (const anchor of anchors) {
           const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
-          if (anchorText.toLowerCase().includes(courseName.toLowerCase())) {
+          if (anchorText.toLowerCase() === courses.courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            console.log('Clicking on anchor with text ' + courseName + '...');
+            console.log('Clicking on anchor with text ' + courses.courseName + '...');
             await anchor.click();
             found = true;
             console.log('Clicked on anchor with text:', anchorText);
             // Wait for the navigation to complete
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
             break;
           }  
         }
@@ -91,13 +103,34 @@ export const bookSession = async () => {
         }
       }
     }
+    const bookingMenu = await page.$('.bs_kurse');
+    if( bookingMenu ) {
+      console.log("Found the booking menu");
+      await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
+    }
+    const tableData = await page.evaluate(() => {
+      const rows = document.querySelectorAll('.bs_kurse tbody tr');
+      let data = [];
+
+      rows.forEach(row => {
+        let rowData = [];
+        const cells = row.querySelectorAll('td');
+        cells.forEach(cell => {
+          rowData.push(cell.textContent.trim());
+        });
+        data.push(rowData);
+      });
+
+      return data;
+    });
+    console.log(tableData);
   } catch(error)  {
     console.log(error);
   }
   finally {
     console.log("Closing the browser...");
     browser.close();
-  }*/
+  }
 };
 
 await bookSession();
