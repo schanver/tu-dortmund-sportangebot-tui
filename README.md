@@ -6,5 +6,5 @@ Are you bored of the not-so-pretty website to get reservations to benefit from t
  - [ ] A method to save the credentials
  - [ ] Main menu 
  - [X] Access the list of sports 
- - [ ] browser navigation
+ - [X] browser navigation
   
