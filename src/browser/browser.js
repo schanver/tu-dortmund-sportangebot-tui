@@ -47,6 +47,7 @@ export const bookSession = async () => {
     {
       type: 'autocomplete',
       name: 'courseName',
+      message: 'Bitte wählen Sie einen Kurs oder den Kursname eingeben',
       searchText: 'Suche nach dem Kurs...',
       emptyText: 'Keine Kurse gefunden!',
       source: searchCourses,
@@ -54,7 +55,7 @@ export const bookSession = async () => {
     }); 
     console.log(courses.courseName); 
 
-  const browser = await puppeteer.launch({headless: 'shell' });
+  const browser = await puppeteer.launch({headless: false});
   const page = await browser.newPage();
   await page.setRequestInterception(true);
   page.on('request', (request) => {
@@ -108,6 +109,7 @@ export const bookSession = async () => {
       console.log("Found the booking menu");
       await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
     }
+    // This part prints the table data of the courses, this will be used to select for which day will the user book 
     const tableData = await page.evaluate(() => {
       const rows = document.querySelectorAll('.bs_kurse tbody tr');
       let data = [];
@@ -120,16 +122,26 @@ export const bookSession = async () => {
         });
         data.push(rowData);
       });
-
       return data;
     });
     console.log(tableData);
+    const inputNames = await page.$$eval('input[type="submit"][class="bs_btn_buchen"]', inputs => {
+        return inputs.map(input => input.name);
+    });
+    // Print the name attributes
+    inputNames.forEach(name => console.log(name));
+
+    // Click the first button
+    if (inputNames.length > 0) {
+        await page.click(`input[type="submit"][name="${inputNames[0]}"]`);
+        console.log(`Clicked button with name: ${inputNames[0]}`);
+    }
   } catch(error)  {
     console.log(error);
   }
   finally {
     console.log("Closing the browser...");
-    browser.close();
+   // browser.close();
   }
 };
 
