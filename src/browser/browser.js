@@ -56,7 +56,9 @@ export const bookSession = async () => {
     console.log(courses.courseName); 
 
   const browser = await puppeteer.launch({headless: false});
-  const page = await browser.newPage();
+  let page = await browser.newPage();
+
+  // Do not load media or styles to save some loading time 
   await page.setRequestInterception(true);
   page.on('request', (request) => {
     const url = request.url();
@@ -71,7 +73,6 @@ export const bookSession = async () => {
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
-     // waitUntil: 'networkidle0', // Ensure the page is fully loaded
       timeout: 20000
     });
   //await page.setViewport({ width: 1080, height: 1024 });
@@ -80,7 +81,7 @@ export const bookSession = async () => {
     await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
     const container = await page.$('div#bs_content dl.bs_menu');
     if( container ) {
-      console.log("Found the container, looking through the courses for " + courses.courseName);
+      console.debug("Found the container, looking through the courses for " + courses.courseName);
       const anchors = await page.$$('a');
       if( anchors.length > 0 ) 
       {
@@ -90,23 +91,23 @@ export const bookSession = async () => {
           if (anchorText.toLowerCase() === courses.courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            console.log('Clicking on anchor with text ' + courses.courseName + '...');
+            console.debug('Clicking on anchor with text ' + courses.courseName + '...');
             await anchor.click();
             found = true;
-            console.log('Clicked on anchor with text:', anchorText);
+            console.debug('Clicked on anchor with text:', anchorText);
             // Wait for the navigation to complete
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
             break;
           }  
         }
         if( !found ) { 
-          console.log("No course with this name has been found!");
+          console.debug("No course with this name has been found!");
         }
       }
     }
     const bookingMenu = await page.$('.bs_kurse');
     if( bookingMenu ) {
-      console.log("Found the booking menu");
+      console.debug("Found the booking menu");
       await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
     }
     // This part prints the table data of the courses, this will be used to select for which day will the user book 
@@ -124,20 +125,50 @@ export const bookSession = async () => {
       });
       return data;
     });
-    console.log(tableData);
+    console.debug(tableData);
+
     const inputNames = await page.$$eval('input[type="submit"][class="bs_btn_buchen"]', inputs => {
         return inputs.map(input => input.name);
     });
     // Print the name attributes
-    inputNames.forEach(name => console.log(name));
+    console.debug('Available courses: ');
+    inputNames.forEach(name => console.debug(name));
 
-    // Click the first button
+    // Click the first button (Just an example)
     if (inputNames.length > 0) {
-        await page.click(`input[type="submit"][name="${inputNames[0]}"]`);
-        console.log(`Clicked button with name: ${inputNames[0]}`);
+        console.debug(`Clicked button with name: ${inputNames[0]}`);
+    } 
+    // Press the link and wait for the target tab 
+    const pageTarget = await page.target();
+    const [newTarget] = await Promise.all([
+        browser.waitForTarget((inputNames) => inputNames.opener() === pageTarget),
+        page.click(`input[type="submit"][name="${inputNames[0]}"]`) // TODO: Change this part with the input of the user 
+    ]);
+    // Change the current page 
+    page = await newTarget.page(); // if this fixes the issue...
+    const title = await page.title();
+    console.debug(title);
+   // await page.waitForSelector('.bs_etvg');
+    const dateSelector = '.bs_form_uni.bs_left.padding0';
+    const divText = await page.$$eval(dateSelector, divs => {
+    if (divs.length > 0) {
+      // We chose the first one because they only open this week's course
+      const firstDiv = divs[0];
+      const values = [];
+      const children = firstDiv.children;
+      for (let child of children) {
+        values.push(child.innerText.trim());
+      }
+      return values;
+    } else {
+      return [];
     }
-  } catch(error)  {
-    console.log(error);
+  }); 
+    console.debug(divText);
+    // Click on the button if it has "buchen" on the name   
+    const bookingButton = '.bs_form_uni.bs_right.padding0 input.inlbutton.buchen';
+    await page.click(bookingButton);
+    await page.waitForNavigation();
   }
   finally {
     console.log("Closing the browser...");
