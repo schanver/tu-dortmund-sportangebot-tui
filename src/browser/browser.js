@@ -1,8 +1,11 @@
 import puppeteer from 'puppeteer';
 import inquirer  from 'inquirer';
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
+import 'dotenv/config';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
+
+const isDebugMode = process.env.DEBUG === 'true';
 
 const courseList = 
   [
@@ -75,7 +78,6 @@ export const bookSession = async () => {
     {
       timeout: 20000
     });
-  //await page.setViewport({ width: 1080, height: 1024 });
   try {
     // Wait for the main div to load
     await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
@@ -151,28 +153,56 @@ export const bookSession = async () => {
    // await page.waitForSelector('.bs_etvg');
     const dateSelector = '.bs_form_uni.bs_left.padding0';
     const divText = await page.$$eval(dateSelector, divs => {
-    if (divs.length > 0) {
-      // We chose the first one because they only open this week's course
-      const firstDiv = divs[0];
-      const values = [];
-      const children = firstDiv.children;
-      for (let child of children) {
-        values.push(child.innerText.trim());
+      if (divs.length > 0) {
+        // We chose the first one because they only open the courses in one week advance
+        const firstDiv = divs[0];
+        const values = [];
+        const children = firstDiv.children;
+        for (let child of children) {
+          values.push(child.innerText.trim());
+        }
+        return values;
+      } else {
+        return [];
       }
-      return values;
-    } else {
-      return [];
-    }
-  }); 
+    }); 
     console.debug(divText);
     // Click on the button if it has "buchen" on the name   
     const bookingButton = '.bs_form_uni.bs_right.padding0 input.inlbutton.buchen';
     await page.click(bookingButton);
     await page.waitForNavigation();
+    
+    // Get the values from the user's .env file and send the keys 
+    await page.waitForSelector('div#bs_form_main');
+    const nameTextField = await page.$('#BS_F1100');
+    console.log(process.env.NAME);
+    await nameTextField.click();
+    await nameTextField.type(process.env.NAME || 'John');
+    console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
+    await nameTextField.press('Shift');
+
+    const surnameTextField = await page.$('#BS_F1200');
+    console.log(process.env.NACHNAME);
+    await surnameTextField.click();
+    await surnameTextField.type(process.env.NACHNAME || 'Doe');
+    console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
+  
+    const streetNoTextField = await page.$('#BS_F1300');
+    console.log(process.env.STRASSE_NO);
+    await streetNoTextField.click();
+    await streetNoTextField.type(process.env.STRASSE_NO || 'Main St 123');
+    console.debug("Typed " + process.env.STREETNO + " into the textField " + streetNoTextField);
+
+    const plz_cityTextField = await page.$('#BS_F1400');
+    console.log(process.env.PLZ_STADT);
+    await plz_cityTextField.click();
+    await plz_cityTextField.type(process.env.PLZ_STADT || '223 Manhattan');
+    console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
+
   }
   finally {
-    console.log("Closing the browser...");
-   // browser.close();
+    console.debug("Closing the browser...");
+    //browser.close();
   }
 };
 
