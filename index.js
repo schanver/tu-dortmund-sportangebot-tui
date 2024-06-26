@@ -1,6 +1,7 @@
 import inquirer from 'inquirer';
 import boxen from 'boxen';
 import chalk from 'chalk';
+import 'dotenv/config';
 import { bookSession } from './src/browser/browser.js';
 
 const menuChoices = [
@@ -23,6 +24,18 @@ const banner = `
 const showBanner = async () => {
     const bannerBoard = boxen(chalk.bold.green(banner));
     return bannerBoard;
+}
+const getCredentials = () => {
+  try {
+    const name        =   process.env.NAME;
+    const nachname    =   process.env.NACHNAME;
+    const strasseno    =  process.env.STRASSE_NO;
+    const plz_stadt   =  process.env.PLZ_STADT;
+    const matrikelno  =   process.env.MATRIKELNUMMER;
+     console.log(name,nachname, strasseno, plz_stadt, matrikelno); 
+  }
+  catch (error) {
+  }
 }
 
 const menu = async () => {
@@ -49,6 +62,7 @@ const menu = async () => {
       console.log("Tschüss...");
       return;
   }
-}
+};
  
-await menu();
+//await menu();
+getCredentials();
