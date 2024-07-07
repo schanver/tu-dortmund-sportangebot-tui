@@ -58,9 +58,9 @@ export const bookSession = async () => {
     }); 
     console.log(courses.courseName); 
 
-  const browser = await puppeteer.launch({headless: false});
+  const browser = await puppeteer.launch({headless:'shell'});
   let page = await browser.newPage();
-
+  await page.setViewport({width: 1980, height: 1200});
   // Do not load media or styles to save some loading time 
   await page.setRequestInterception(true);
   page.on('request', (request) => {
@@ -78,6 +78,7 @@ export const bookSession = async () => {
     {
       timeout: 20000
     });
+  
   try {
     // Wait for the main div to load
     await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
@@ -134,20 +135,30 @@ export const bookSession = async () => {
     });
     // Print the name attributes
     console.debug('Available courses: ');
-    inputNames.forEach(name => console.debug(name));
+    const { avaiableCourses } = await inquirer.prompt(
+      {
+        type:'list',
+        name:'bookSession',
+        message:'Welchen Kurs möchten Sie buchen?',
+        choices: tableData 
+      });
+    console.log(avaiableCourses);
+
+
 
     // Click the first button (Just an example)
     if (inputNames.length > 0) {
-        console.debug(`Clicked button with name: ${inputNames[0]}`);
+        console.debug(`Clicked button with name: ${avaiableCourses.bookSession}`);
     } 
     // Press the link and wait for the target tab 
     const pageTarget = await page.target();
     const [newTarget] = await Promise.all([
         browser.waitForTarget((inputNames) => inputNames.opener() === pageTarget),
-        page.click(`input[type="submit"][name="${inputNames[0]}"]`) // TODO: Change this part with the input of the user 
+        page.click(`input[type="submit"][name="${inputNames[4]}"]`) // TODO: Change this part with the input of the user 
     ]);
     // Change the current page 
     page = await newTarget.page(); // if this fixes the issue...
+    await page.waitForNetworkIdle();
     const title = await page.title();
     console.debug(title);
    // await page.waitForSelector('.bs_etvg');
@@ -172,22 +183,28 @@ export const bookSession = async () => {
     await page.click(bookingButton);
     await page.waitForNavigation();
     
-    // Get the values from the user's .env file and send the keys 
-    await page.waitForSelector('div#bs_form_main');
-    const nameTextField = await page.$('#BS_F1100');
+    // Get the values from the user's .env file and send the keys
+    const bigTitle = await page.$('div#bs_uni_text');
+    console.log(bigTitle); 
+
+    await page.waitForSelector('input[name="sex"][value="M"]');
+    await page.click('input[name="sex"][value="M"]');
+    let nameTextField = await page.$('input#BS_F1100');
+    if( !nameTextField ) {
+      console.debug("Field not found!");
+    }
     console.log(process.env.NAME);
     await nameTextField.click();
     await nameTextField.type(process.env.NAME || 'John');
     console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
-    await nameTextField.press('Shift');
 
-    const surnameTextField = await page.$('#BS_F1200');
+    const surnameTextField = await page.$('input#BS_F1200');
     console.log(process.env.NACHNAME);
     await surnameTextField.click();
     await surnameTextField.type(process.env.NACHNAME || 'Doe');
     console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
   
-    const streetNoTextField = await page.$('#BS_F1300');
+    const streetNoTextField = await page.$('input#BS_F1300');
     console.log(process.env.STRASSE_NO);
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO || 'Main St 123');
@@ -199,11 +216,49 @@ export const bookSession = async () => {
     await plz_cityTextField.type(process.env.PLZ_STADT || '223 Manhattan');
     console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
+    const status = await page.$('#BS_F1600');
+    await status.select('S-TUD');
+
+    
+    await page.type('input[name="matnr"], input[name="mitnr"]', '242952');
+
+    console.log(process.env.EMAIL); 
+    const email = await page.$('#BS_F2000');
+    await email.click();
+    await email.type(process.env.EMAIL);
+
+    const phoneNo = await page.$('#BS_F2100');
+    await phoneNo.click();
+    await phoneNo.type(process.env.PHONE_NO);
+
+    await page.click('input[type="checkbox"][name="tnbed"]');
+    const submit = await page.$('#bs_submit');
+    await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }),submit);
+    await page.waitForSelector('#bs_submit', {visible: true });
+    await page.click('#bs_submit');
+
+    //await page.waitForNavigation();
+    await page.waitForNetworkIdle();
+    /*await page.waitForSelector('div#bs_foot.bs_form_foot');
+    const submit2 = await page.$('input.sub');
+    await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }),submit2);
+    await submit2.click();*/
+
+    await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
+
+    // Click the submit button
+    await page.click('input[type="submit"][value="verbindlich buchen"]');
+
+    console.log('Clicked the submit button.');
+
+    console.debug("Booking confirmed");
+    await page.waitForNavigation();
   }
   finally {
-    console.debug("Closing the browser...");
-    //browser.close();
+    const screenshot = await page.screenshot({ path: 'example.png' });
+    console.log("Closing the browser...");
+    browser.close();
   }
 };
 
-await bookSession();
+//await bookSession();
