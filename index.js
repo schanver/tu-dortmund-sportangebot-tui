@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import boxen from 'boxen';
 import chalk from 'chalk';
 import 'dotenv/config';
-import { bookSession } from './src/browser/browser.js';
+import { chooseSportType } from './src/browser/browser.js';
 
 const menuChoices = [
   "Für einen Kurs anmelden",
@@ -29,12 +29,17 @@ const getCredentials = () => {
   try {
     const name        =   process.env.NAME;
     const nachname    =   process.env.NACHNAME;
-    const strasseno    =  process.env.STRASSE_NO;
-    const plz_stadt   =  process.env.PLZ_STADT;
-    const matrikelno  =   process.env.MATRIKELNUMMER;
-     console.log(name,nachname, strasseno, plz_stadt, matrikelno); 
+    const strasseno   =   process.env.STRASSE_NO;
+    const plz_stadt   =   process.env.PLZ_STADT;
+    const matrikelno  =   process.env.MATRIKELNUMMER;eo
+
+    if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 ) {
+      throw new Error("Bitte füllen Sie alle Zeile aus! Für Hilfe geben Sie \"./index,js --help\" ein.")
+    }
+    //console.log(name,nachname,strasseno,plz_stadt,matrikelno);
   }
   catch (error) {
+    console.error("Bitte füllen Sie alle Zeile in .env-Datei aus! Für Hilfe geben Sie \"./index.js --help\" ein.");
   }
 }
 
@@ -42,6 +47,7 @@ const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
+  getCredentials();
   const menuScreen = await inquirer.prompt(
     {
       type: "list",
@@ -52,7 +58,7 @@ const menu = async () => {
     switch(menuScreen.menuOptions)
   {
     case menuChoices[0]:
-      await bookSession();
+      await chooseSportType();
       break;
     case menuChoices[1]:
       break;
@@ -64,5 +70,5 @@ const menu = async () => {
   }
 };
  
-//await menu();
-getCredentials();
+await menu();
+//getCredentials();
