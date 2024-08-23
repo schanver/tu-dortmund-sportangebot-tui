@@ -94,10 +94,10 @@ export const bookSession = async () => {
           if (anchorText.toLowerCase() === courses.courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            console.debug('Clicking on anchor with text ' + courses.courseName + '...');
+            console.debug('Clicking on ' + courses.courseName + '...');
             await anchor.click();
             found = true;
-            console.debug('Clicked on anchor with text:', anchorText);
+            console.debug('Clicked on :', anchorText);
             // Wait for the navigation to complete
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
             break;
@@ -122,33 +122,42 @@ export const bookSession = async () => {
         let rowData = "";
         const cells = row.querySelectorAll('td');
         cells.forEach(cell => {
-          rowData += cell.textContent.trim();
+          let newLength;
+          if(cell !== cells[0] && cell !== cells[5]) {
+            if(cell.innerHTML.includes("<br>") && cell !== cells[7]) {
+              let newLength = cell.textContent.trim().length / 2;
+              rowData += cell.textContent.trim().substring(0,newLength).padEnd(newLength > 25 ? 28 : 15) + `\t`;
+            }
+            else {
+              newLength = cell.textContent.trim().length;
+              rowData += cell.textContent.trim().padEnd(newLength > 25 ? 28 : 15) + `\t`;
+            }
+          }
         });
         data.push(rowData);
       });
       return data;
     });
-    console.debug(tableData);
 
     const inputNames = await page.$$eval('input[type="submit"][class="bs_btn_buchen"]', inputs => {
         return inputs.map(input => input.name);
     });
     // Print the name attributes
     console.debug('Available courses: ');
-    const { avaiableCourses } = await inquirer.prompt(
+    const { availableCourses } = await inquirer.prompt(
       {
         type:'list',
         name:'bookSession',
         message:'Welchen Kurs möchten Sie buchen?',
         choices: tableData 
       });
-    console.log(avaiableCourses);
+    console.log(availableCourses);
 
 
 
     // Click the first button (Just an example)
     if (inputNames.length > 0) {
-        console.debug(`Clicked button with name: ${avaiableCourses.bookSession}`);
+        console.debug(`Clicked button with name: ${availableCourses.bookSession}`);
     } 
     // Press the link and wait for the target tab 
     const pageTarget = await page.target();
@@ -186,7 +195,7 @@ export const bookSession = async () => {
     // Get the values from the user's .env file and send the keys
     const bigTitle = await page.$('div#bs_uni_text');
     console.log(bigTitle); 
-    const gender = "M"
+    const gender = process.env.GENDER;
     await page.waitForSelector(`input[name="sex"][value="${gender}"]`);
     await page.click(`input[name="sex"][value="${gender}"]`);
     let nameTextField = await page.$('input#BS_F1100');
@@ -208,7 +217,7 @@ export const bookSession = async () => {
     console.log(process.env.STRASSE_NO);
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO || 'Main St 123');
-    console.debug("Typed " + process.env.STREETNO + " into the textField " + streetNoTextField);
+    console.debug("Typed " + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
 
     const plz_cityTextField = await page.$('#BS_F1400');
     console.log(process.env.PLZ_STADT);
@@ -220,7 +229,7 @@ export const bookSession = async () => {
     await status.select('S-TUD');
 
     
-    await page.type('input[name="matnr"], input[name="mitnr"]', '242952');
+    await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKEL_NO);
 
     console.log(process.env.EMAIL); 
     const email = await page.$('#BS_F2000');
