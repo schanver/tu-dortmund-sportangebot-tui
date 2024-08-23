@@ -3,9 +3,9 @@ Are you bored of the not-so-pretty website to get reservations to benefit from t
 
 
 # To-do
- - [ ] A method to save the credentials
- - [ ] Main menu 
+ - [X] A method to save the credentials
+ - [X] Main menu 
  - [X] Access the list of sports 
  - [X] browser navigation
  - [ ] Database integration
-  
+ - [ ] Course Session Selection with table information (day,time,place,course trainer etc.) 

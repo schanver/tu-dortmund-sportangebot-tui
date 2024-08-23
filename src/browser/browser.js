@@ -119,10 +119,10 @@ export const bookSession = async () => {
       let data = [];
 
       rows.forEach(row => {
-        let rowData = [];
+        let rowData = "";
         const cells = row.querySelectorAll('td');
         cells.forEach(cell => {
-          rowData.push(cell.textContent.trim());
+          rowData += cell.textContent.trim();
         });
         data.push(rowData);
       });
@@ -186,9 +186,9 @@ export const bookSession = async () => {
     // Get the values from the user's .env file and send the keys
     const bigTitle = await page.$('div#bs_uni_text');
     console.log(bigTitle); 
-
-    await page.waitForSelector('input[name="sex"][value="M"]');
-    await page.click('input[name="sex"][value="M"]');
+    const gender = "M"
+    await page.waitForSelector(`input[name="sex"][value="${gender}"]`);
+    await page.click(`input[name="sex"][value="${gender}"]`);
     let nameTextField = await page.$('input#BS_F1100');
     if( !nameTextField ) {
       console.debug("Field not found!");

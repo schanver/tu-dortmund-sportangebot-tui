@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import boxen from 'boxen';
 import chalk from 'chalk';
 import 'dotenv/config';
-import { chooseSportType } from './src/browser/browser.js';
+import { bookSession } from './src/browser/browser.js';
 
 const menuChoices = [
   "Für einen Kurs anmelden",
@@ -31,7 +31,7 @@ const getCredentials = () => {
     const nachname    =   process.env.NACHNAME;
     const strasseno   =   process.env.STRASSE_NO;
     const plz_stadt   =   process.env.PLZ_STADT;
-    const matrikelno  =   process.env.MATRIKELNUMMER;eo
+    const matrikelno  =   process.env.MATRIKELNUMMER;
 
     if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 ) {
       throw new Error("Bitte füllen Sie alle Zeile aus! Für Hilfe geben Sie \"./index,js --help\" ein.")
@@ -40,6 +40,7 @@ const getCredentials = () => {
   }
   catch (error) {
     console.error("Bitte füllen Sie alle Zeile in .env-Datei aus! Für Hilfe geben Sie \"./index.js --help\" ein.");
+    process.exit(1);
   }
 }
 
@@ -58,7 +59,7 @@ const menu = async () => {
     switch(menuScreen.menuOptions)
   {
     case menuChoices[0]:
-      await chooseSportType();
+      await bookSession();
       break;
     case menuChoices[1]:
       break;
