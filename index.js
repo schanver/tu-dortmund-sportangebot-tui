@@ -1,12 +1,19 @@
 import inquirer from 'inquirer';
 import boxen from 'boxen';
 import chalk from 'chalk';
-import 'dotenv/config';
-import { bookSession } from './src/browser/browser.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath  } from 'url';
+import { selectCourse } from './src/browser/new_browser.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Resolve the path to the .env file relative to the index.js file
+dotenv.config({ path: path.resolve(__dirname, './.env') });
 
 const menuChoices = [
   "Für einen Kurs anmelden",
-  "Von einem Kurs abmelden",
   "Angemeldete Kurse anzeigen",
   "Program beenden"
 ];
@@ -32,19 +39,21 @@ const getCredentials = () => {
     const strasseno   =   process.env.STRASSE_NO;
     const plz_stadt   =   process.env.PLZ_STADT;
     const matrikelno  =   process.env.MATRIKELNUMMER;
+    const email       =   process.env.EMAIL; 
+    const phone_no    =   process.env.PHONE_NO;
+    const status      =   process.env.ZUSTAND;
 
-    if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 ) {
+    if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 || status.length == 0) {
       throw new Error("Bitte füllen Sie alle Zeile aus! Für Hilfe geben Sie \"./index,js --help\" ein.")
     }
-    //console.log(name,nachname,strasseno,plz_stadt,matrikelno);
+    console.log(name,nachname, strasseno,plz_stadt,matrikelno,email, phone_no, status);
   }
   catch (error) {
     console.error("Bitte füllen Sie alle Zeile in .env-Datei aus! Für Hilfe geben Sie \"./index.js --help\" ein.");
-    process.exit(1);
   }
 }
 
-const menu = async () => {
+export const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
@@ -59,7 +68,7 @@ const menu = async () => {
     switch(menuScreen.menuOptions)
   {
     case menuChoices[0]:
-      await bookSession();
+      await selectCourse();
       break;
     case menuChoices[1]:
       break;
@@ -72,4 +81,3 @@ const menu = async () => {
 };
  
 await menu();
-//getCredentials();
