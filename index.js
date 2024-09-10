@@ -46,10 +46,11 @@ const getCredentials = () => {
     if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 || status.length == 0) {
       throw new Error("Bitte füllen Sie alle Zeile aus! Für Hilfe geben Sie \"./index,js --help\" ein.")
     }
-    console.log(name,nachname, strasseno,plz_stadt,matrikelno,email, phone_no, status);
+   // console.log(name,nachname, strasseno,plz_stadt,matrikelno,email, phone_no, status);
   }
   catch (error) {
     console.error("Bitte füllen Sie alle Zeile in .env-Datei aus! Für Hilfe geben Sie \"./index.js --help\" ein.");
+    process.exit(0);
   }
 }
 
@@ -73,10 +74,8 @@ export const menu = async () => {
     case menuChoices[1]:
       break;
     case menuChoices[2]:
-      break;
-    case menuChoices[3]:
       console.log("Tschüss...");
-      return;
+      process.exit(0);
   }
 };
  
