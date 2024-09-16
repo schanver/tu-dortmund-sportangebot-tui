@@ -17,6 +17,7 @@
     "duckdb": "^1.0.0",
     "inquirer": "^9.2.23",
     "inquirer-autocomplete-prompt": "^3.0.1",
+    "inquirer-interrupted-prompt": "^3.0.0",
     "puppeteer": "^22.10.0"
   }
 }
