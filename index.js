@@ -1,11 +1,13 @@
 import inquirer from 'inquirer';
+import InterruptedPrompt from "inquirer-interrupted-prompt";
 import boxen from 'boxen';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath  } from 'url';
-import { selectCourse } from './src/browser/new_browser.js';
+import { selectCourse } from './src/browser/browser.js';
 
+InterruptedPrompt.fromAll(inquirer);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -28,7 +30,7 @@ const banner = `
         "                                           ""                    
 `;
 
-const showBanner = async () => {
+export const showBanner = async () => {
     const bannerBoard = boxen(chalk.bold.green(banner));
     return bannerBoard;
 }
@@ -65,7 +67,16 @@ export const menu = async () => {
       name: "menuOptions",
       message: chalk.yellow("Wilkommen, was möchten Sie tun?"),
       choices: menuChoices
-    });
+    })
+    .catch((error) => {
+    if (error.isTtyError) {
+    } else {
+      if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
+        console.log("\nExiting the program...");
+        process.exit(0);
+      }
+    }
+  });
     switch(menuScreen.menuOptions)
   {
     case menuChoices[0]:

@@ -1,11 +1,14 @@
 import puppeteer from 'puppeteer';
 import inquirer  from 'inquirer';
+import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import 'dotenv/config';
-import { menu } from '../../index.js';
+import { menu,showBanner } from '../../index.js';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
+InterruptedPrompt.fromAll(inquirer);
 
+const browser = await puppeteer.launch({headless: 'shell'});
 const isDebugMode = process.env.DEBUG === 'true';
 let bookingCompleted = false;
 const courseList = 
@@ -47,7 +50,6 @@ async function searchCourses(answers, input) {
 }
 
 const dontLoadMediaContent = async ( page ) => {
-
   // Do not load media or styles to save some loading time 
   await page.setRequestInterception(true);
   page.on('request', (request) => {
@@ -60,64 +62,76 @@ const dontLoadMediaContent = async ( page ) => {
     }
   });
 };
-export const bookSession = async () => {
 
-    const courses = await inquirer.prompt(
-    {
-      type: 'autocomplete',
-      name: 'courseName',
-      message: 'Bitte wählen Sie einen Kurs oder den Kursname eingeben',
-      searchText: 'Suche nach dem Kurs...',
-      emptyText: 'Keine Kurse gefunden!',
-      source: searchCourses,
-      pageSize: 20
-    }); 
-    console.log(courses.courseName); 
+export const selectCourse = async () => {
+console.clear();
+console.log(await showBanner());
 
-  const browser = await puppeteer.launch({headless:false});
+const courses = await inquirer.prompt({
+type: 'autocomplete',
+name: 'selectedCourse',
+message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein',
+searchText: 'Suche nach dem Kurs...',
+emptyText: 'Keine Kurse gefunden!',
+source : searchCourses,
+pageSize: 20
+})
+.catch(async (error) => {
+    if (error.isTtyError) {
+    } else {
+      if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
+        await menu();
+      }
+    }
+  });
+  const courseName = courses.selectedCourse;
+  await selectCourseDay(courseName);
+};
+
+const selectCourseDay = async ( courseName ) => {
+
   let page = await browser.newPage();
-  await page.setViewport({width: 1980, height: 1200});
-
-  await dontLoadMediaContent(page);
+  await page.setViewport({ width: 1980, height: 1200 });
+  
+//#await dontLoadMediaContent(page);
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
       timeout: 20000
     });
-  
-  try {
     // Wait for the main div to load
     await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
     const container = await page.$('div#bs_content dl.bs_menu');
+
     if( container ) {
-      console.debug("Found the container, looking through the courses for " + courses.courseName);
+      if (isDebugMode) console.debug(`Found the container, looking through the courses for ${courseName}`);
       const anchors = await page.$$('a');
       if( anchors.length > 0 ) 
       {
         let found = false;
         for (const anchor of anchors) {
           const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
-          if (anchorText.toLowerCase() === courses.courseName.toLowerCase()) {
+          if (anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            console.debug('Clicking on ' + courses.courseName + '...');
+            if (isDebugMode) console.debug('Clicking on ' + courseName + '...');
             await anchor.click();
             found = true;
-            console.debug('Clicked on :', anchorText);
+            if (isDebugMode) console.debug('Clicked on :', anchorText);
             // Wait for the navigation to complete
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
             break;
           }  
         }
         if( !found ) { 
-          console.debug("No course with this name has been found!");
+          if (isDebugMode) console.debug("No course with this name has been found!");
         }
       }
     }
 
     const bookingMenu = await page.$('.bs_kurse');
     if( bookingMenu ) {
-      console.debug("Found the booking menu");
+      if (isDebugMode) console.debug("Found the booking menu");
       await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
     }
     // This part prints the table data of the courses, this will be used to select for which day will the user book 
@@ -144,8 +158,16 @@ export const bookSession = async () => {
               rowData += cell.textContent.trim().padEnd(newLength < 25 ? 25 : newLength) + `\t`;
               }
             }
+        }
+        if(cell === cells[cells.length - 1]) {
+          const button = cell.querySelector('input[type="submit"]');
+          if( button ) {
+            rowData += ` ${button.value}`;
+          } else {
+            rowData += cell.textContent.trim(); 
           }
-        });
+        }});
+
         data.push(rowData);
       });
       return data;
@@ -161,13 +183,20 @@ export const bookSession = async () => {
         name:'bookSelectedCourse',
         message:'Welchen Kurs möchten Sie buchen?',
         choices: tableData 
-      });
-    console.log(availableCourses);
+      })
+    .catch(async (error) => {
+      if (error.isTtyError) {
+      } else {
+        if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
+          await selectCourse();
+        }
+      }
+    })
 
-    // Click the first button (Just an example)
     if (inputNames.length > 0) {
-        console.debug(`Clicked button with name: ${availableCourses.bookSelectedCourse}`);
+        if (isDebugMode) console.debug(`Clicked button with name: ${availableCourses.bookSelectedCourse}`);
     } 
+
     // Press the link and wait for the target tab 
     const pageTarget = await page.target();
     const [newTarget] = await Promise.all([
@@ -178,13 +207,14 @@ export const bookSession = async () => {
     page = await newTarget.page(); // if this fixes the issue...
     await page.waitForNetworkIdle();
     const title = await page.title();
-    console.debug(title);
-    const dateSelector = '.bs_form_uni.bs_left.padding0';
+    if (isDebugMode) console.debug(title);
+
+    //const dateSelector = await page.$('.bs_form_uni.bs_left.padding0');
 
     // This is used to differentiate weekly and one-time bookings, if this selector is present, then it is a weekly booking 
-
-    if( dateSelector ) {
-    const divText = await page.$$eval(dateSelector, async divs => {
+    //
+   /* if( dateSelector ) {
+    const divText = await page.$eval(dateSelector, async divs => {
       if (divs.length > 0) {
         // We chose the first one because they only open the courses in one week advance
         const bookingDate = [];
@@ -196,51 +226,51 @@ export const bookSession = async () => {
         return bookingDate;
       } else {
         console.error("There are no bookings available for this course in the meantime. Returning to main menu...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        await menu();
-
+        process.exit(0);
       }
-    }); 
-    console.debug(divText);
+  });
+
+    //if (isDebugMode) console.debug(divText);*/
     // Click on the button if it has "buchen" on the name   
     const bookingButton = '.bs_form_uni.bs_right.padding0 input.inlbutton.buchen';
+    await page.$(bookingButton);
     await page.click(bookingButton);
     await page.waitForNavigation();
-    }
+    await fillCredentials(page);
+    
+  } 
 
-    await page.setViewport({width: 1980, height: 1200});
+const fillCredentials = async (page) => {
+  
     // Get the values from the user's .env file and send the keys
-    const bigTitle = await page.$('div#bs_uni_text');
-    console.debug(bigTitle); 
-    const gender = process.env.GENDER;
-    await page.waitForSelector(`input[name="sex"][value="${gender.toUpperCase()}"]`);
-    await page.click(`input[name="sex"][value="${gender.toUpperCase()}"]`);
-    let nameTextField = await page.$('input#BS_F1100');
-    if( !nameTextField ) {
-      console.debug("Field not found!");
-    }
-    console.log(process.env.NAME);
+    /* const name   = process.env.NAME;
+    const surname = process.env.NACHNAME;
+    const street_no = process.env.STRASSE_NO;
+    const pc_and_city = process.env.PLZ_STADT;
+    const */ 
+    try { 
+    console.log(process.env.GESCHLECHT);
+    await page.waitForSelector(`input[name="sex"][value="M"]`);
+    await page.click(`input[name="sex"][value="M"]`);
+    let nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
     await nameTextField.type(process.env.NAME);
-    console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
+    if (isDebugMode) console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
 
-    const surnameTextField = await page.$('input#BS_F1200');
-    console.log(process.env.NACHNAME);
+    const surnameTextField = await page.$('#BS_F1200');
     await surnameTextField.click();
     await surnameTextField.type(process.env.NACHNAME);
-    console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
+    if (isDebugMode) console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
   
-    const streetNoTextField = await page.$('input#BS_F1300');
-    console.log(process.env.STRASSE_NO);
+    const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO);
-    console.debug("Typed " + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
+    if (isDebugMode) console.debug("Typed " + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
 
     const plz_cityTextField = await page.$('#BS_F1400');
-    console.log(process.env.PLZ_STADT);
     await plz_cityTextField.click();
     await plz_cityTextField.type(process.env.PLZ_STADT);
-    console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
+    if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
     const status = await page.$('#BS_F1600');
     await status.select('S-TUD');
@@ -265,25 +295,39 @@ export const bookSession = async () => {
 
     await page.waitForNetworkIdle();
 
+
     await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
 
     // Click the submit button
     await page.click('input[type="submit"][value="verbindlich buchen"]');
-
     console.log('Clicked the submit button.');
+    await page.waitForNavigation();
 
-    console.debug("Booking confirmed");
+    const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
+
+    if( alreadyBooked ) {
+    console.log("You have already booked this course! Returning to main menu...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    await menu();
+    }
+    else {
+    if (isDebugMode) console.debug("Booking confirmed");
     bookingCompleted = true;
     console.log("Screenshot of the booking could be found in the root directory");
     await page.waitForNavigation();
+    }
   }
   finally {
     if(bookingCompleted) {
-    await page.screenshot({ path: 'reservation.png' });
+    await page.screenshot({path: './reservation.png'});
+    console.log("Booking completed.");
     }
     console.log("Closing the browser...");
-    browser.close();
+    await browser.close();
+    await menu(); 
   }
-};
 
-//await bookSession();
+}
+
+    
+
