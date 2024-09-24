@@ -10,20 +10,21 @@ Afterwards change into the project directory and type:
 ```bash 
 $ npm ci 
 ```
-Afterwards you can use the program by typing 
-```bash 
+# Usage 
+First create .env file in the root directory of the project. Rename the .env.example.md and fill the information needed to process with the booking.
+Afterwards run the program with:
+
+``` bash
 $ node index.js
 ```
 
-
-# Usage 
-First create .env file in the root directory of the project. Rename the .env.example.md and fill the information needed to process with the booking.
+`
 
 # Requirements 
-```Nodejs``
+```Nodejs```
 
 # Roadmap 
 - [ ] Database integration to keep track of the bookings 
-- [ ] More exception handling for locked or booked out courses  
+- [ ] More exception handling for locked or booked out courses
 
 # License
