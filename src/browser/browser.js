@@ -168,9 +168,9 @@ const selectCourseDay = async ( courseName ) => {
           } 
           else if (index == 4) { // Location of the course
             tableObject.place = cell.innerHTML
-              .replace(/<a[^>]*>(.*?)<\/a>/g, '$1')
-              .replace(/<br\s*\/?>/gi, ' ') 
-              .trim();
+                                    .replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
+                                    .replace(/<br\s*\/?>/gi, ' ')
+                                    .trim();
           } 
           else if (index == cells.length - 1) { // Booking button or status
             const button = cell.querySelector('input[type="submit"]');
@@ -241,7 +241,6 @@ const selectCourseDay = async ( courseName ) => {
     const title = await page.title();
     if (isDebugMode) console.debug(title);
 
-    //const dateSelector = await page.$('.bs_form_uni.bs_left.padding0');
 
     // This is used to differentiate weekly and one-time bookings, if this selector is present, then it is a weekly booking 
     //
@@ -261,30 +260,23 @@ const selectCourseDay = async ( courseName ) => {
         process.exit(0);
       }
   });
-  }
-
-    //if (isDebugMode) console.debug(divText);
+    if (isDebugMode) console.debug(divText);
     // Click on the button if it has "buchen" on the name   
     const bookingButton = '.bs_form_uni.bs_right.padding0 input.inlbutton.buchen';
     await page.$(bookingButton);
     await page.click(bookingButton);
     await page.waitForNavigation();
+   }
     await fillCredentials(page);
     
   } 
 
 const fillCredentials = async (page) => {
   
-    // Get the values from the user's .env file and send the keys
-    /* const name   = process.env.NAME;
-    const surname = process.env.NACHNAME;
-    const street_no = process.env.STRASSE_NO;
-    const pc_and_city = process.env.PLZ_STADT;
-    const */ 
-    try { 
+    try {
     console.log(process.env.GESCHLECHT);
-    await page.waitForSelector(`input[name="sex"][value="M"]`);
-    await page.click(`input[name="sex"][value="M"]`);
+      await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
+      await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     let nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
     await nameTextField.type(process.env.NAME);
@@ -305,13 +297,16 @@ const fillCredentials = async (page) => {
     await plz_cityTextField.type(process.env.PLZ_STADT);
     if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
+
+      // TODO : Change this to select what user selected at the .env file
+      // also add the line to write IBAN, if necessary
     const status = await page.$('#BS_F1600');
     await status.select('S-TUD');
 
     
     await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKELNUMMER);
 
-    console.log(process.env.EMAIL); 
+      if(isDebugMode) console.log(process.env.EMAIL);
     const email = await page.$('#BS_F2000');
     await email.click();
     await email.type(process.env.EMAIL);
