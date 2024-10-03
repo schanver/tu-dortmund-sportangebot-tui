@@ -225,14 +225,14 @@ const selectCourseDay = async ( courseName ) => {
      const courseID = availableCourses.bookSelectedCourse;
     
   
-    if (inputNames.length > 0) {
+    if (courseInfoCombined.length > 0) {
         if (isDebugMode) console.debug(`Clicked button with name: ${tableData[courseID].id}`);
     } 
     
     // Press the link and wait for the target tab 
     const pageTarget = await page.target();
     const [newTarget] = await Promise.all([
-        browser.waitForTarget((inputNames) => inputNames.opener() === pageTarget),
+        browser.waitForTarget((target) => target.opener() === pageTarget),
         page.click(`input[type="submit"][name="${tableData[courseID].id}"]`)
     ]);
     // Change the current page 
@@ -306,7 +306,7 @@ const fillCredentials = async (page) => {
     
     await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKELNUMMER);
 
-      if(isDebugMode) console.log(process.env.EMAIL);
+      if (isDebugMode) console.log(process.env.EMAIL);
     const email = await page.$('#BS_F2000');
     await email.click();
     await email.type(process.env.EMAIL);
