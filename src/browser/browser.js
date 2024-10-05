@@ -4,12 +4,13 @@ import inquirer  from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import 'dotenv/config';
-import { menu,showBanner,isDebugMode } from '../../index.js';
+import { menu,showBanner } from '../../index.js';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await puppeteer.launch({headless: 'shell'});
+const isDebugMode = true;
+const browser = await puppeteer.launch({headless: false});
 let bookingCompleted = false;
 const courseList = 
   [
@@ -49,6 +50,11 @@ async function searchCourses(answers, input) {
     typeof course === 'string' && course.toLowerCase().includes(input.toLowerCase()));
 }
 
+function stripAnsi(str) {
+    return str.replace(/\x1B\[[0-9;]*m/g, '');
+}
+
+// To speed up load time when testing without headless mode
 const dontLoadMediaContent = async ( page ) => {
   // Do not load media or styles to save some loading time 
   await page.setRequestInterception(true);
@@ -137,22 +143,21 @@ const selectCourseDay = async ( courseName ) => {
 
     // TODO: Make it an object array so that it gives me the option to disable them to my heart's content 
     
-    
-  const {tableData} = await page.evaluate(() => {
+  const {tableData,courseIDs} = await page.evaluate(() => {
     const rows = document.querySelectorAll('.bs_kurse tbody tr');
     let data = []
-
+    let localIDs = [];
     rows.forEach(row => {
       const cells = row.querySelectorAll('td');
 
       // Create an object for the current row
       let tableObject = {
-        name: '',
-        place: '',
+        name:'',
+        place:'',
         time: '',
         day: '',
         status: '',
-        id : ''
+        id :''
       };
 
       if (cells) {
@@ -174,16 +179,27 @@ const selectCourseDay = async ( courseName ) => {
           } 
           else if (index == cells.length - 1) { // Booking button or status
             const button = cell.querySelector('input[type="submit"]');
-            if (button && button.name === 'bs_btn_buchen') { // Booking button available
-              tableObject.status = button.value;
+            if(button) {
+              console.log(button.name);
+              if (button.classList.contains('bs_btn_buchen')) { // Booking button available
+              tableObject.status = button.value.trim();
               tableObject.id = button.name;
+              localIDs.push(tableObject.id);
             } 
-            else if (button && button.name === 'bs_btn_ausgebucht') { // Course is fully booked
-              tableObject.status = button.value;
+              else if (button.classList.contains('bs_btn_ausgebucht')) { // Course is fully booked
+              tableObject.status = button.value.trim();
               tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
-            } 
+              localIDs.push(button.name);
+            }
+              else if( button.classList.contains('bs_btn_warteliste')) {
+              tableObject.status = button.value.trim();
+              tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
+              localIDs.push(button.name);
+              }
+            }
             else { // No booking button available
               tableObject.disabled = cell.textContent.trim();
+              localIDs.push("x");
             }
           }
         });
@@ -193,58 +209,63 @@ const selectCourseDay = async ( courseName ) => {
       }
     });
 
-    return { tableData: data };
+    return { tableData: data, courseIDs: localIDs };
   });
 
   const courseInfoCombined = tableData.map((course, index ) => {
-    const courseInfo = `${course.name}, ${course.day}, ${course.time}, ${course.place}, ${course.status}`;
+    const courseInfo = `${course.name},${course.day},${course.time},${course.place},${course.status}`;
     const isDisabled = course.disabled ? course.disabled : false;
     const coloredCourseInfo = isDisabled ? chalk.red(courseInfo) : chalk.green(courseInfo);
     return {
       name: coloredCourseInfo,
-      disabled : isDisabled
+      disabled : isDisabled,
     };
   });
-
-    // Print the name attributes
+    // Print the list of available courses
     const availableCourses = await inquirer.prompt(
       {
         type:'list',
         name:'bookSelectedCourse',
         message:'Welchen Kurs möchten Sie buchen?',
         choices: courseInfoCombined
-    })
-    .catch(async (error) => {
-      if (error.isTtyError) {
-      } else {
-        if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
-          await selectCourse();
+      })
+      .catch(async (error) => {
+        if (error.isTtyError) {
+        } else {
+          if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
+            await selectCourse();
+          }
         }
-      }
-    });
-     const courseID = availableCourses.bookSelectedCourse;
-    
-  
-    if (courseInfoCombined.length > 0) {
-        if (isDebugMode) console.debug(`Clicked button with name: ${tableData[courseID].id}`);
-    } 
-    
-    // Press the link and wait for the target tab 
-    const pageTarget = await page.target();
-    const [newTarget] = await Promise.all([
+      });
+  const courseParts = availableCourses.bookSelectedCourse.split(",");
+  const courseID = tableData.find(obj => 
+    obj.name === stripAnsi(courseParts[0]) &&
+    obj.day  === stripAnsi(courseParts[1]) &&
+    obj.time === stripAnsi(courseParts[2])
+  );
+  console.log(courseID);
+
+//      if (isDebugMode) console.debug(`Clicked button with name: ${courseID}`);
+
+      // Press the link and wait for the target tab
+      const pageTarget = await page.target();
+      const [newTarget] = await Promise.all([
         browser.waitForTarget((target) => target.opener() === pageTarget),
-        page.click(`input[type="submit"][name="${tableData[courseID].id}"]`)
-    ]);
+        page.click(`input[type="submit"][name="${courseID.id}"]`),
+      ]).catch(error => {
+      console.error("Error clicking button or waiting for target:", error);
+      return null; // Return null if there's an error
+    });
+
     // Change the current page 
-    page = await newTarget.page(); // if this fixes the issue...
+    page = await newTarget.page() // if this fixes the issue...
     await page.waitForNetworkIdle();
     const title = await page.title();
     if (isDebugMode) console.debug(title);
 
-
-    // This is used to differentiate weekly and one-time bookings, if this selector is present, then it is a weekly booking 
-    //
-   if( dateSelector ) {
+  const dateSelector = await page.$$("bs_form_row bs_rowstripe0")[0];
+  // This is used to differentiate weekly and one-time bookings, if this selector is present, then it is a weekly booking 
+  if( dateSelector ) {
     const divText = await page.$eval(dateSelector, async divs => {
       if (divs.length > 0) {
         // We chose the first one because they only open the courses in one week advance
@@ -259,16 +280,19 @@ const selectCourseDay = async ( courseName ) => {
         console.error("There are no bookings available for this course in the meantime. Returning to main menu...");
         process.exit(0);
       }
-  });
+    });
     if (isDebugMode) console.debug(divText);
     // Click on the button if it has "buchen" on the name   
-    const bookingButton = '.bs_form_uni.bs_right.padding0 input.inlbutton.buchen';
+    const bookingButton = 'input[type="submit"][class="inlbutton buchen"][value="buchen"]';
     await page.$(bookingButton);
     await page.click(bookingButton);
     await page.waitForNavigation();
-   }
     await fillCredentials(page);
-    
+  }
+  else{
+    await fillCredentials(page);
+  }    
+
   } 
 
 const fillCredentials = async (page) => {
