@@ -10,7 +10,9 @@ import { selectCourse } from './src/browser/browser.js';
 InterruptedPrompt.fromAll(inquirer);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-export const isDebugMode = process.env.DEBUG===true
+
+export let isDebugMode = process.env.DEBUG==="true";
+
 // Resolve the path to the .env file relative to the index.js file
 dotenv.config({ path: path.resolve(__dirname, './.env') });
 
