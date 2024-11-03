@@ -4,13 +4,13 @@ import inquirer  from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import 'dotenv/config';
-import { menu,showBanner } from '../../index.js';
+import { menu,showBanner,isDebugMode} from '../../index.js';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const isDebugMode = true;
-const browser = await puppeteer.launch({headless: false});
+//const isDebugMode = true;
+const browser = await puppeteer.launch({headless: 'shell'});
 let bookingCompleted = false;
 const courseList = 
   [
@@ -76,11 +76,11 @@ console.log(await showBanner());
 const courses = await inquirer.prompt({
 type: 'autocomplete',
 name: 'selectedCourse',
-message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein',
+message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein, drücken Sie die Taste <ESC>, um zurück zum Hauptmenü zu gehen',
 searchText: 'Suche nach dem Kurs...',
 emptyText: 'Keine Kurse gefunden!',
 source : searchCourses,
-pageSize: 20
+pageSize: 25
 })
 .catch(async (error) => {
     if (error.isTtyError) {
@@ -137,7 +137,7 @@ const selectCourseDay = async ( courseName ) => {
 
     const bookingMenu = await page.$('.bs_kurse');
     if( bookingMenu ) {
-      if (isDebugMode) console.debug("Found the booking menu");
+      if (isDebugMode) console.debug("Buchungsmenu ist gefunden...");
       await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
     }
 
@@ -245,7 +245,7 @@ const selectCourseDay = async ( courseName ) => {
   );
   console.log(courseID);
 
-//      if (isDebugMode) console.debug(`Clicked button with name: ${courseID}`);
+      if (isDebugMode) console.debug(`Die Taste mit dem ID ${courseID} wurde geclickt...`);
 
       // Press the link and wait for the target tab
       const pageTarget = await page.target();
@@ -253,7 +253,7 @@ const selectCourseDay = async ( courseName ) => {
         browser.waitForTarget((target) => target.opener() === pageTarget),
         page.click(`input[type="submit"][name="${courseID.id}"]`),
       ]).catch(error => {
-      console.error("Error clicking button or waiting for target:", error);
+      console.error("Fehler beim Clicken auf der Taste oder Wartung auf das Ziel:", error);
       return null; // Return null if there's an error
     });
 
@@ -263,44 +263,46 @@ const selectCourseDay = async ( courseName ) => {
     const title = await page.title();
     if (isDebugMode) console.debug(title);
 
-  const dateSelector = await page.$$("bs_form_row bs_rowstripe0")[0];
-  // This is used to differentiate weekly and one-time bookings, if this selector is present, then it is a weekly booking 
-  if( dateSelector ) {
-    const divText = await page.$eval(dateSelector, async divs => {
-      if (divs.length > 0) {
-        // We chose the first one because they only open the courses in one week advance
-        const bookingDate = [];
-        const firstDiv = divs[0];
-        const children = firstDiv.children;
-        for (let child of children) {
-          bookingDate.push(child.innerText.trim());
-        }
-        return bookingDate;
-      } else {
-        console.error("There are no bookings available for this course in the meantime. Returning to main menu...");
-        process.exit(0);
-      }
-    });
-    if (isDebugMode) console.debug(divText);
-    // Click on the button if it has "buchen" on the name   
-    const bookingButton = 'input[type="submit"][class="inlbutton buchen"][value="buchen"]';
-    await page.$(bookingButton);
-    await page.click(bookingButton);
-    await page.waitForNavigation();
-    await fillCredentials(page);
-  }
-  else{
-    await fillCredentials(page);
-  }    
+  const dateSelector = await page.$$(".bs_form_uni.bs_left.padding0");
+  // This is used to differentiate weekly and one-time bookings; if this selector is present, then it is a weekly booking 
+  if (dateSelector.length > 0) {
+    const divText = await page.evaluate(div => {
+      const bookingDate = [];
+      const children = div.children;
 
-  } 
+      for (let child of children) {
+        bookingDate.push(child.innerText.trim());
+      }
+
+      return bookingDate;
+    }, dateSelector[0]);
+
+
+    if (isDebugMode) console.table(divText);
+
+    // Click on the button if it has "buchen" on the name   
+    const bookingButton = await page.$('input[type="submit"][class="inlbutton buchen"][value="buchen"]');
+    if (bookingButton) { // Ensure the button exists
+      await bookingButton.click();
+      await page.waitForNavigation({ waitUntil: 'networkidle0' }); // Wait for the navigation or network idle
+      await fillCredentials(page);
+    } else {
+      console.error("Keine Taste zur Buchung ist verfügbar");
+     // await fillCredentials(page);
+    }
+  } else {
+    console.error("Es ist zurzeit keine Buchung zu diesem Angebot verfügbar.Gehe zurück ins Menü...");
+    await new Promise(resolve => setTimeout(resolve, 3000)); 
+    await menu();
+  }
+} 
 
 const fillCredentials = async (page) => {
   
-    try {
-    console.log(process.env.GESCHLECHT);
-      await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
-      await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
+  try {
+    console.log("Filling the credentials, please wait...");
+    await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
+    await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     let nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
     await nameTextField.type(process.env.NAME);
@@ -310,7 +312,7 @@ const fillCredentials = async (page) => {
     await surnameTextField.click();
     await surnameTextField.type(process.env.NACHNAME);
     if (isDebugMode) console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
-  
+
     const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO);
@@ -322,15 +324,15 @@ const fillCredentials = async (page) => {
     if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
 
-      // TODO : Change this to select what user selected at the .env file
-      // also add the line to write IBAN, if necessary
+    // TODO : Change this to select what user selected at the .env file
+    // also add the line to write IBAN, if necessary
     const status = await page.$('#BS_F1600');
     await status.select('S-TUD');
 
-    
+    // TODO: This must be changed to be more versatile
     await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKELNUMMER);
 
-      if (isDebugMode) console.log(process.env.EMAIL);
+    if (isDebugMode) console.log(process.env.EMAIL);
     const email = await page.$('#BS_F2000');
     await email.click();
     await email.type(process.env.EMAIL);
@@ -350,36 +352,55 @@ const fillCredentials = async (page) => {
 
     await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
 
+    // Secondary email check
+
+
     // Click the submit button
     await page.click('input[type="submit"][value="verbindlich buchen"]');
-    console.log('Clicked the submit button.');
+    if(isDebugMode) console.log('Clicked on the submit button...');
     await page.waitForNavigation();
 
     const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
-
+    console.log(alreadyBooked);
     if( alreadyBooked ) {
-    console.log("You have already booked this course! Returning to main menu...");
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    await menu();
+      console.log("Sie haben schon für dieses Angebot eine Buchung!Zurück zum Menü in 5 Sekunden...");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await menu();
     }
     else {
-    if (isDebugMode) console.debug("Booking confirmed");
-    bookingCompleted = true;
-    console.log("Screenshot of the booking could be found in the root directory");
-    await page.waitForNavigation();
+      console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
+      bookingCompleted = true;
+      console.log(chalk.green("Das Photo von Buchungsticket kann in "));
+      await waitForNetworkIdle();
     }
   }
   finally {
-    if(bookingCompleted) {
-    await page.screenshot({path: './reservation.png'});
-    console.log("Booking completed.");
+    if (bookingCompleted) {
+      try {
+        // Ensure `pic` directory exists
+        const picDir = path.resolve(__dirname, '../../pic'); // Move up from src/browser to project root
+        if (!fs.existsSync(picDir)) {
+          fs.mkdirSync(picDir, { recursive: true });
+        }
+
+        // Create a filename with date and course information
+        const date = new Date().toISOString().slice(0, 10); // e.g., "2024-11-03"
+        const courseName = "exampleCourse"; // Replace with a dynamic course name if available
+        const filePath = path.join(picDir, `reservation-${date}-${courseName}.png`);
+
+        // Take a screenshot and save it to the constructed path
+        await page.screenshot({ path: filePath });
+        console.log(`Screenshot successfully saved to ${filePath}`);
+      } catch (error) {
+        console.error("Error taking screenshot:", error);
+      }
     }
-    console.log("Closing the browser...");
+    if (isDebugMode) console.debug("Browser wird geschlossen...");
     await browser.close();
-    await menu(); 
+    await menu();
   }
 
 }
 
-    
+
 
