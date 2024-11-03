@@ -1,27 +1,28 @@
 # Sportangebot-cli
-Are you bored of the not-so-pretty website to get reservations to benefit from the campus sport opportunities? Then you are at the right place 
-
+A command-line application to book for sports events in TU Dortmund. 
 # Installation 
 Clone the repository to the desired location using the following command:
 ```bash
-$ git clone github.com/schanver/tu-dortmund-sportangebot-cli.git
+git clone github.com/schanver/tu-dortmund-sportangebot-cli.git
 ````
 Afterwards change into the project directory and type:
 ```bash 
-$ npm ci 
+npm ci 
 ```
 # Usage 
-First create .env file in the root directory of the project. Rename the .env.example.md and fill the information needed to process with the booking.
+First rename the .env.example.md to .env and fill the information needed to process with the booking.
+
 Afterwards run the program with:
 
+
 ``` bash
-$ node index.js
+node index.js
 ```
 
 `
 
 # Requirements 
-```Nodejs```
+```Nodejs```, ```a Chromium based Browser```
 
 # Roadmap 
 - [ ] Database integration to keep track of the bookings 
