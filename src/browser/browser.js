@@ -9,8 +9,7 @@ import { menu,showBanner,isDebugMode} from '../../index.js';
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-//const isDebugMode = true;
-const browser = await puppeteer.launch({headless: 'shell'});
+const browser = await puppeteer.launch({headless: false});
 let bookingCompleted = false;
 const courseList = 
   [
@@ -42,6 +41,22 @@ const courseList =
     "Windsurfen","World Jumping®","Yoga","Zirkeltraining (BGF)","Zirkeltraining (BGF) FH",
     "Zumba®","Zwischen-Zirkeltraining vor Ort","RESTPLÄTZE - alle freien Kursplätze dieses Zeitraums"
   ];
+export const visitorStatus = [
+  "",
+  "S-TUD",
+  "S-FHD",
+  "S-FH/RUB",
+  "S-aH",
+  "B-TUDO",
+  "B-FHDO",
+  "B-STWDO",
+  "Azubi TU",
+  "GH",
+  "Extern",
+  "B-FHRUB",
+  "B-aH"
+];
+  
 
 async function searchCourses(answers, input) {
 
@@ -110,7 +125,7 @@ const selectCourseDay = async ( courseName ) => {
     const container = await page.$('div#bs_content dl.bs_menu');
 
     if( container ) {
-      if (isDebugMode) console.debug(`Found the container, looking through the courses for ${courseName}`);
+      if (isDebugMode) console.debug(`Suche nach dem Kurs ${courseName}`);
       const anchors = await page.$$('a');
       if( anchors.length > 0 ) 
       {
@@ -120,17 +135,17 @@ const selectCourseDay = async ( courseName ) => {
           if (anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            if (isDebugMode) console.debug('Clicking on ' + courseName + '...');
+            if (isDebugMode) console.debug('Clicken auf' + courseName + '...');
             await anchor.click();
             found = true;
-            if (isDebugMode) console.debug('Clicked on :', anchorText);
+            if (isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
             // Wait for the navigation to complete
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
             break;
           }  
         }
         if( !found ) { 
-          if (isDebugMode) console.debug("No course with this name has been found!");
+          if (isDebugMode) console.debug("Keine Buchung für dieses Angebot ist möglich!");
         }
       }
     }
@@ -300,37 +315,43 @@ const selectCourseDay = async ( courseName ) => {
 const fillCredentials = async (page) => {
   
   try {
-    console.log("Filling the credentials, please wait...");
+    console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
     await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     let nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
     await nameTextField.type(process.env.NAME);
-    if (isDebugMode) console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
+    //if (isDebugMode) console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
 
     const surnameTextField = await page.$('#BS_F1200');
     await surnameTextField.click();
     await surnameTextField.type(process.env.NACHNAME);
-    if (isDebugMode) console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
+    //if (isDebugMode) console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
 
     const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO);
-    if (isDebugMode) console.debug("Typed " + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
+    //if (isDebugMode) console.debug("Typed" + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
 
     const plz_cityTextField = await page.$('#BS_F1400');
     await plz_cityTextField.click();
     await plz_cityTextField.type(process.env.PLZ_STADT);
-    if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
+    //if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
 
     // TODO : Change this to select what user selected at the .env file
     // also add the line to write IBAN, if necessary
     const status = await page.$('#BS_F1600');
-    await status.select('S-TUD');
+    await status.select(visitorStatus[process.env.STATUS]);
 
     // TODO: This must be changed to be more versatile
     await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKELNUMMER);
+
+    const officialPhone = await page.$('#BS_F1800');
+    if(officialPhone) {
+      await officialPhone.click();
+      await officialPhone.type(process.env.DIENSTLEISTUNG_PHONE);
+    }
 
     if (isDebugMode) console.log(process.env.EMAIL);
     const email = await page.$('#BS_F2000');
@@ -340,6 +361,12 @@ const fillCredentials = async (page) => {
     const phoneNo = await page.$('#BS_F2100');
     await phoneNo.click();
     await phoneNo.type(process.env.PHONE_NO);
+
+    const iban = await page.$('#BS_F_iban');
+    if(iban) {
+      await iban.click();
+      await iban.type(process.env.IBAN);
+    }
 
     await page.click('input[type="checkbox"][name="tnbed"]');
     const submit = await page.$('#bs_submit');
@@ -352,13 +379,14 @@ const fillCredentials = async (page) => {
 
     await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
 
-    // Secondary email check
 
 
     // Click the submit button
     await page.click('input[type="submit"][value="verbindlich buchen"]');
-    if(isDebugMode) console.log('Clicked on the submit button...');
+    if(isDebugMode) console.log('Auf dem Submit-Button geclickt...');
     await page.waitForNavigation();
+
+    console.log("");
 
     const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
     console.log(alreadyBooked);
@@ -370,19 +398,12 @@ const fillCredentials = async (page) => {
     else {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
-      console.log(chalk.green("Das Photo von Buchungsticket kann in "));
-      await waitForNetworkIdle();
-    }
-  }
-  finally {
-    if (bookingCompleted) {
       try {
         // Ensure `pic` directory exists
-        const picDir = path.resolve(__dirname, '../../pic'); // Move up from src/browser to project root
+        const picDir = path.resolve(__dirname, '../../screenshots'); // Move up from src/browser to project root
         if (!fs.existsSync(picDir)) {
           fs.mkdirSync(picDir, { recursive: true });
         }
-
         // Create a filename with date and course information
         const date = new Date().toISOString().slice(0, 10); // e.g., "2024-11-03"
         const courseName = "exampleCourse"; // Replace with a dynamic course name if available
@@ -394,13 +415,15 @@ const fillCredentials = async (page) => {
       } catch (error) {
         console.error("Error taking screenshot:", error);
       }
+      console.log(chalk.green("Das Photo von Buchungsticket kann im  Ordner \"reservations\" gefunden werden"));
+      await waitForNetworkIdle();
     }
+  }
+  finally {
     if (isDebugMode) console.debug("Browser wird geschlossen...");
     await browser.close();
     await menu();
   }
 
 }
-
-
 
