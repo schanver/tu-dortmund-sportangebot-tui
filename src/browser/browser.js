@@ -5,44 +5,18 @@ import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import 'dotenv/config';
 import { menu,showBanner,isDebugMode} from '../../index.js';
+import { fetchList } from './fetchList.js';
+import path from 'path';
+import fs from 'fs';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
 const browser = await puppeteer.launch({headless: false});
 let bookingCompleted = false;
-const courseList = 
-  [
-    "Acroyoga", "Aerobic Workout meets HIIT", "Anatolische Volkstänze", "Bachata",
-    "Badminton","Ballett","Basketball","Bauchkiller","Beach Platzreservierung",
-    "Beachkarte","Beachvolleyball","Bodyforming","Bogenschießen Recurve (olympisch)",
-    "Bollywood Musical","Bouldern","Boule","Boxen","Brazilian Jiu Jitsu",
-    "Budolehrgang Kyusho und Aikijitsu","Calisthenics","Campusliga","Capoeira",
-    "Cheerleading","Confidance","Darts","EntspannungsPause FH","Entspannungspause TU",
-    "Euro Fußballseminar mit Andy Markovits","Fatburner","Fechten",
-    "FFW Das Fitnessstudio auf dem Campus","FFW Follow UP","FFW international class",
-    "FFW Personal Training","FFW Probetraining","FFW Starterkurs","FFW welcome back",
-    "Fitnesskarte","Flag Football","Floorball","flowing AthletiX®","Frauenfußball",
-    "Frisbee - Ultimate Frisbee -","Full Body Workout","Futrex-Messung","Futsal",
-    "Fußball","Handball","Hiphop Basics","Hiphop Fusion","Hoopdance","Intervall Training",
-    "Judo","Kickboxen","Klettern","Kombikarte","Kung Fu","Lacrosse","Lauftreff",
-    "Lauftreff Intervalltraining","Leichtathletik","Luftakrobatik","Meditation mit Klangschalen",
-    "Mobile Massage","Modern Dance/ Contemporary","Mountainbike","Ninjitsu","Online-Kurse",
-    "Parkour","Pausenexpress FH Dortmund","Pausenexpress TU","Pilates","Poledance",
-    "Powerstep","Progressive Muskelentspannung","Reiten","Rennrad","Rock´n´Roll",
-    "Roundnet/ Spikeball","Rudern","Rugby","Rückenfit","Rückenfit im Büroalltag (BGF)",
-    "Salsa","Schach","Schwimmen","Schwimmkarte Freies Schwimmen","Selbstverteidigung",
-    "Showdown","Skateboarding","Soccerbox","Softball (Mixed)","Spazierengehen",
-    "Spiele spielen/kleine Sportspiele","SPORTKARTE","Stand UP Paddling (SUP)",
-    "Taekwondo","Tagesticket Hochschulsport","Tai Chi Chuan","Tango Argentino",
-    "Tanz Standard/Latein","Tennis Kurs","Tennis Platzreservierung","Tenniskarte",
-    "Tischtennis","Trampolin","Turnen","Unihockey","Unterwasser - Rugby",
-    "Verleih von Bewegungs- und Entspannungsmaterialien","Volleyball",
-    "Windsurfen","World Jumping®","Yoga","Zirkeltraining (BGF)","Zirkeltraining (BGF) FH",
-    "Zumba®","Zwischen-Zirkeltraining vor Ort","RESTPLÄTZE - alle freien Kursplätze dieses Zeitraums"
-  ];
+
 export const visitorStatus = [
-  "",
+  " ",
   "S-TUD",
   "S-FHD",
   "S-FH/RUB",
@@ -56,7 +30,7 @@ export const visitorStatus = [
   "B-FHRUB",
   "B-aH"
 ];
-  
+let courseList = [];
 
 async function searchCourses(answers, input) {
 
@@ -87,6 +61,7 @@ const dontLoadMediaContent = async ( page ) => {
 export const selectCourse = async () => {
 console.clear();
 console.log(await showBanner());
+courseList = await fetchList();
 
 const courses = await inquirer.prompt({
 type: 'autocomplete',
@@ -132,6 +107,7 @@ const selectCourseDay = async ( courseName ) => {
         let found = false;
         for (const anchor of anchors) {
           const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
+          console.log(`Comparing ${anchorText} to ${courseName}...`);
           if (anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
@@ -140,12 +116,14 @@ const selectCourseDay = async ( courseName ) => {
             found = true;
             if (isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
             // Wait for the navigation to complete
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 200000 });
-            break;
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+            break; 
           }  
         }
         if( !found ) { 
-          if (isDebugMode) console.debug("Keine Buchung für dieses Angebot ist möglich!");
+          console.error("Dieser Kurs ist leider nicht gefunden werden!");
+          //await selectCourse();
+          process.exit(0);
         }
       }
     }
@@ -315,6 +293,7 @@ const selectCourseDay = async ( courseName ) => {
 const fillCredentials = async (page) => {
   
   try {
+
     console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
     await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
@@ -339,18 +318,32 @@ const fillCredentials = async (page) => {
     //if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
 
+
     // TODO : Change this to select what user selected at the .env file
     // also add the line to write IBAN, if necessary
+    const userStatus = visitorStatus[parseInt(process.env.ZUSTAND)];
     const status = await page.$('#BS_F1600');
-    await status.select(visitorStatus[process.env.STATUS]);
+    await status.select(userStatus);
 
+    let isDisabled;
     // TODO: This must be changed to be more versatile
-    await page.type('input[name="matnr"], input[name="mitnr"]', process.env.MATRIKELNUMMER);
+    const matriculationNumber = await page.$('#BS_F1700');
+    if( matriculationNumber) {
+    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);
+    if(!isDisabled) {
+      await matriculationNumber.click();
+      await matriculationNumber.type(process.env.MATRIKELNUMMER);
+    }
+    }
+   
 
     const officialPhone = await page.$('#BS_F1800');
     if(officialPhone) {
+    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), officialPhone);
+    if(!isDisabled) {
       await officialPhone.click();
       await officialPhone.type(process.env.DIENSTLEISTUNG_PHONE);
+    }
     }
 
     if (isDebugMode) console.log(process.env.EMAIL);
@@ -364,8 +357,11 @@ const fillCredentials = async (page) => {
 
     const iban = await page.$('#BS_F_iban');
     if(iban) {
+    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), iban);
+    if(!isDisabled) {
       await iban.click();
       await iban.type(process.env.IBAN);
+    }
     }
 
     await page.click('input[type="checkbox"][name="tnbed"]');
@@ -416,13 +412,13 @@ const fillCredentials = async (page) => {
         console.error("Error taking screenshot:", error);
       }
       console.log(chalk.green("Das Photo von Buchungsticket kann im  Ordner \"reservations\" gefunden werden"));
-      await waitForNetworkIdle();
+      await page.waitForNetworkIdle();
     }
   }
   finally {
     if (isDebugMode) console.debug("Browser wird geschlossen...");
     await browser.close();
-    await menu();
+   await menu();
   }
 
 }
