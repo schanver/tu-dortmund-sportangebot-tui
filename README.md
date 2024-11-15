@@ -19,10 +19,11 @@ Afterwards run the program with:
 node index.js
 ```
 
-`
+
 
 # Requirements 
 ```Nodejs```, ```a Chromium based Browser```
+
 
 # Roadmap 
 - [ ] Database integration to keep track of the bookings 

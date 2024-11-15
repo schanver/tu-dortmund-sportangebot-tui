@@ -74,7 +74,6 @@ export const menu = async () => {
     if (error.isTtyError) {
     } else {
       if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
-        console.log("\nExiting the program...");
         process.exit(0);
       }
     }

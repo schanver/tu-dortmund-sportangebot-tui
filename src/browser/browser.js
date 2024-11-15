@@ -12,7 +12,7 @@ import fs from 'fs';
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await puppeteer.launch({headless: false});
+const browser = await puppeteer.launch({headless: 'shell'});
 let bookingCompleted = false;
 
 export const visitorStatus = [
@@ -89,7 +89,7 @@ const selectCourseDay = async ( courseName ) => {
   let page = await browser.newPage();
   await page.setViewport({ width: 1980, height: 1200 });
   
-//#await dontLoadMediaContent(page);
+//await dontLoadMediaContent(page);
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
@@ -122,7 +122,7 @@ const selectCourseDay = async ( courseName ) => {
         }
         if( !found ) { 
           console.error("Dieser Kurs ist leider nicht gefunden werden!");
-          //await selectCourse();
+          await selectCourse();
           process.exit(0);
         }
       }
@@ -134,7 +134,6 @@ const selectCourseDay = async ( courseName ) => {
       await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
     }
 
-    // TODO: Make it an object array so that it gives me the option to disable them to my heart's content 
     
   const {tableData,courseIDs} = await page.evaluate(() => {
     const rows = document.querySelectorAll('.bs_kurse tbody tr');
@@ -297,36 +296,29 @@ const fillCredentials = async (page) => {
     console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
     await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
-    let nameTextField = await page.$('#BS_F1100');
+    const nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
     await nameTextField.type(process.env.NAME);
-    //if (isDebugMode) console.debug("Typed " + process.env.NAME + " into the textField " + nameTextField);
 
     const surnameTextField = await page.$('#BS_F1200');
     await surnameTextField.click();
     await surnameTextField.type(process.env.NACHNAME);
-    //if (isDebugMode) console.debug("Typed " + process.env.NACHNAME + " into the textField " + surnameTextField);
 
     const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
     await streetNoTextField.type(process.env.STRASSE_NO);
-    //if (isDebugMode) console.debug("Typed" + process.env.STRASSE_NO + " into the textField " + streetNoTextField);
 
     const plz_cityTextField = await page.$('#BS_F1400');
     await plz_cityTextField.click();
     await plz_cityTextField.type(process.env.PLZ_STADT);
-    //if (isDebugMode) console.debug("Typed " + process.env.PLZ_STADT + " into the textField " + plz_cityTextField);
 
 
 
-    // TODO : Change this to select what user selected at the .env file
-    // also add the line to write IBAN, if necessary
     const userStatus = visitorStatus[parseInt(process.env.ZUSTAND)];
     const status = await page.$('#BS_F1600');
     await status.select(userStatus);
 
     let isDisabled;
-    // TODO: This must be changed to be more versatile
     const matriculationNumber = await page.$('#BS_F1700');
     if( matriculationNumber) {
     isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);

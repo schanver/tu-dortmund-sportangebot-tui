@@ -15,9 +15,11 @@
     "chalk": "^5.3.0",
     "dotenv": "^16.4.5",
     "duckdb": "^1.0.0",
+    "fs": "^0.0.1-security",
     "inquirer": "^9.2.23",
     "inquirer-autocomplete-prompt": "^3.0.1",
     "inquirer-interrupted-prompt": "^3.0.0",
+    "path": "^0.12.7",
     "puppeteer": "^22.10.0"
   }
 }
