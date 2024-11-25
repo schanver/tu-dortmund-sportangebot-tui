@@ -32,7 +32,7 @@ export const visitorStatus = [
 ];
 let courseList = [];
 
-async function searchCourses(answers, input) {
+async function searchCourses(_, input) {
 
   input = input || '';
   return courseList.filter(course =>
@@ -274,13 +274,14 @@ const selectCourseDay = async ( courseName ) => {
 
     // Click on the button if it has "buchen" on the name   
     const bookingButton = await page.$('input[type="submit"][class="inlbutton buchen"][value="buchen"]');
-    if (bookingButton) { // Ensure the button exists
+    // Ensure the button exists
+    if (bookingButton) { 
       await bookingButton.click();
       await page.waitForNavigation({ waitUntil: 'networkidle0' }); // Wait for the navigation or network idle
       await fillCredentials(page);
     } else {
       console.error("Keine Taste zur Buchung ist verfügbar");
-     // await fillCredentials(page);
+      // await fillCredentials(page);
     }
   } else {
     console.error("Es ist zurzeit keine Buchung zu diesem Angebot verfügbar.Gehe zurück ins Menü...");
@@ -387,7 +388,7 @@ const fillCredentials = async (page) => {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
       try {
-        // Ensure `pic` directory exists
+        // FIXME: This should be fixed urgently tbh, find the time to fix it 
         const picDir = path.resolve(__dirname, '../../screenshots'); // Move up from src/browser to project root
         if (!fs.existsSync(picDir)) {
           fs.mkdirSync(picDir, { recursive: true });
