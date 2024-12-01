@@ -36,33 +36,45 @@ export const showBanner = async () => {
     const bannerBoard = boxen(chalk.bold.green(banner));
     return bannerBoard;
 }
-const getCredentials = () => {
+const checkCredentials = () => {
   try {
-    const name        =   process.env.NAME;
-    const nachname    =   process.env.NACHNAME;
-    const strasseno   =   process.env.STRASSE_NO;
-    const plz_stadt   =   process.env.PLZ_STADT;
-    const matrikelno  =   process.env.MATRIKELNUMMER;
-    const email       =   process.env.EMAIL; 
-    const phone_no    =   process.env.PHONE_NO;
-    const status      =   process.env.ZUSTAND;
+    const name = process.env.NAME;
+    const nachname = process.env.NACHNAME;
+    const street_no = process.env.STRASSE_NO;
+    const plz_stadt = process.env.PLZ_STADT;
+    const matrikel_no = process.env.MATRIKELNUMMER;
+    const email = process.env.EMAIL; 
+    const phone_no = process.env.PHONE_NO;
+    const status = process.env.STATUS;
+    const dl_no = process.env.DIENSTL_NO;
+    const iban = process.env.IBAN;
+    const geschlecht = process.env.GESCHLECHT;
 
-    if( name.length == 0 || nachname.length == 0 || strasseno.length == 0 || plz_stadt.length == 0 || matrikelno.length == 0 || status.length == 0) {
-      throw new Error("Bitte füllen Sie alle Zeile aus! Für Hilfe geben Sie \"./index,js --help\" ein.")
+    // Check if the mandatory values are present
+    if (!name || !nachname || !street_no || !plz_stadt || !email || !phone_no || !status || !geschlecht) {
+      throw new Error("Bitte füllen Sie die benötigte Informationen aus!");
     }
-   // console.log(name,nachname, strasseno,plz_stadt,matrikelno,email, phone_no, status);
+
+    if ([1, 2, 3, 4].includes(parseInt(status)) && (!matrikel_no || matrikel_no.length === 0)) {
+      throw new Error("Bitte geben Sie ihre Matrikelnummer ein!");
+    }
+
+    if ([5, 6, 7, 8, 11, 12].includes(parseInt(status)) && (!dl_no || dl_no.length === 0)) {
+      throw new Error("Bitte geben Sie ihre Dienstleistungsnummer ein!");
+    }
+
+    console.log(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
+  } catch (error) {
+    console.error(error.message); 
+    process.exit(1); 
   }
-  catch (error) {
-    console.error("Bitte füllen Sie alle Zeile in .env-Datei aus! Für Hilfe geben Sie \"./index.js --help\" ein.");
-    process.exit(0);
-  }
-}
+};
 
 export const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
-  getCredentials();
+  checkCredentials();
   const menuScreen = await inquirer.prompt(
     {
       type: "list",
