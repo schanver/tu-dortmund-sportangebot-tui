@@ -11,6 +11,7 @@ InterruptedPrompt.fromAll(inquirer);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export const PROJECT_ROOT = __dirname;
 export let isDebugMode = process.env.DEBUG==="true";
 
 // Resolve the path to the .env file relative to the index.js file
@@ -56,11 +57,11 @@ const checkCredentials = () => {
     }
 
     if ([1, 2, 3, 4].includes(parseInt(status)) && (!matrikel_no || matrikel_no.length === 0)) {
-      throw new Error("Bitte geben Sie ihre Matrikelnummer ein!");
+      throw new Error(chalk.red.bold("Bitte geben Sie ihre Matrikelnummer ein!"));
     }
 
     if ([5, 6, 7, 8, 11, 12].includes(parseInt(status)) && (!dl_no || dl_no.length === 0)) {
-      throw new Error("Bitte geben Sie ihre Dienstleistungsnummer ein!");
+      throw new Error(chalk.red.bold("Bitte geben Sie ihre Dienstleistungsnummer ein!"));
     }
 
     console.log(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
@@ -72,7 +73,7 @@ const checkCredentials = () => {
 
 export const menu = async () => {
   const banner = await showBanner();
-  console.clear();
+  //console.clear();
   console.log(banner);
   checkCredentials();
   const menuScreen = await inquirer.prompt(
