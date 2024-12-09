@@ -4,10 +4,9 @@ import inquirer  from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from 'inquirer-autocomplete-prompt';
 import 'dotenv/config';
-import { menu,showBanner,isDebugMode} from '../../index.js';
+import { PROJECT_ROOT ,menu,showBanner,isDebugMode} from '../../index.js';
 import { fetchList } from './fetchList.js';
 import path from 'path';
-import fs from 'fs';
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
@@ -16,7 +15,7 @@ const browser = await puppeteer.launch({headless: 'shell'});
 let bookingCompleted = false;
 
 export const visitorStatus = [
-  " ",
+  "",
   "S-TUD",
   "S-FHD",
   "S-FH/RUB",
@@ -278,7 +277,7 @@ const selectCourseDay = async ( courseName ) => {
     if (bookingButton) { 
       await bookingButton.click();
       await page.waitForNavigation({ waitUntil: 'networkidle0' }); // Wait for the navigation or network idle
-      await fillCredentials(page);
+      await fillCredentials(page,courseName);
     } else {
       console.error("Keine Taste zur Buchung ist verfügbar");
       // await fillCredentials(page);
@@ -290,7 +289,7 @@ const selectCourseDay = async ( courseName ) => {
   }
 } 
 
-const fillCredentials = async (page) => {
+const fillCredentials = async (page, courseName) => {
   
   try {
 
@@ -315,7 +314,7 @@ const fillCredentials = async (page) => {
 
 
 
-    const userStatus = visitorStatus[parseInt(process.env.ZUSTAND)];
+    const userStatus = visitorStatus[parseInt(process.env.STATUS)];
     const status = await page.$('#BS_F1600');
     await status.select(userStatus);
 
@@ -373,45 +372,42 @@ const fillCredentials = async (page) => {
     // Click the submit button
     await page.click('input[type="submit"][value="verbindlich buchen"]');
     if(isDebugMode) console.log('Auf dem Submit-Button geclickt...');
-    await page.waitForNavigation();
+    await page.waitForNavigation({waitUntil: 'networkidle2'});
 
-    console.log("");
 
     const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
-    console.log(alreadyBooked);
     if( alreadyBooked ) {
-      console.log("Sie haben schon für dieses Angebot eine Buchung!Zurück zum Menü in 5 Sekunden...");
+      console.log(chalk.yellow("Sie haben schon für dieses Angebot eine Buchung!Zurück zum Menü in 5 Sekunden..."));
       await new Promise(resolve => setTimeout(resolve, 5000));
       await menu();
     }
     else {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
-      try {
-        // FIXME: This should be fixed urgently tbh, find the time to fix it 
-        const picDir = path.resolve(__dirname, '../../screenshots'); // Move up from src/browser to project root
-        if (!fs.existsSync(picDir)) {
-          fs.mkdirSync(picDir, { recursive: true });
-        }
-        // Create a filename with date and course information
-        const date = new Date().toISOString().slice(0, 10); // e.g., "2024-11-03"
-        const courseName = "exampleCourse"; // Replace with a dynamic course name if available
-        const filePath = path.join(picDir, `reservation-${date}-${courseName}.png`);
-
+      await new Promise(resolve => setTimeout(resolve, 3000));
+     /* try {
+        // This should be fixed urgently tbh, find the time to fix it 
+        const picDir = path.resolve(PROJECT_ROOT, './screenshots/'); 
         // Take a screenshot and save it to the constructed path
-        await page.screenshot({ path: filePath });
-        console.log(`Screenshot successfully saved to ${filePath}`);
+        await page.screenshot({ path: picDir });
+        console.log(`Buchungsfoto kann in ${filePath} gefunden werden`);
       } catch (error) {
         console.error("Error taking screenshot:", error);
       }
-      console.log(chalk.green("Das Photo von Buchungsticket kann im  Ordner \"reservations\" gefunden werden"));
+      console.log(chalk.green("Das Photo von Buchungsticket kann im  Ordner \"screenshots\" gefunden werden"));
       await page.waitForNetworkIdle();
+    */
     }
   }
   finally {
-    if (isDebugMode) console.debug("Browser wird geschlossen...");
+    const picName = new Date().toISOString().substring(0,16).replace('T',' ') + ' ' + courseName; 
+    const picDir = path.resolve(PROJECT_ROOT, `./screenshots/${picName}.png`); 
+    // Take a screenshot and save it to the constructed path
+    await page.screenshot({ path: picDir });
+    console.log(`Buchungsfoto kann in \"screenshots\"-Ordner gefunden werden`);
+    console.log("Browser wird geschlossen...");
     await browser.close();
-   await menu();
+    await menu();
   }
 
 }
