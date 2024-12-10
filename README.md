@@ -14,7 +14,6 @@ First rename the .env.example.md to .env and fill the information needed to proc
 
 Afterwards run the program with:
 
-
 ``` bash
 node index.js
 ```
@@ -25,8 +24,5 @@ node index.js
 ```Nodejs```, ```a Chromium based Browser```
 
 
-# Roadmap 
-- [ ] Database integration to keep track of the bookings 
-- [ ] More exception handling for locked or booked out courses
 
 # License
