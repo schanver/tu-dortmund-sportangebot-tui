@@ -63,6 +63,9 @@ const checkCredentials = () => {
     if ([5, 6, 7, 8, 11, 12].includes(parseInt(status)) && (!dl_no || dl_no.length === 0)) {
       throw new Error(chalk.red.bold("Bitte geben Sie ihre Dienstleistungsnummer ein!"));
     }
+      if (parseInt(status) < 1 || parseInt(status) > 12) {
+          throw new Errorr(chalk.red.bold("Bitte geben Sie eine gültiges Status ein!"));
+      }
 
     console.log(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
   } catch (error) {
@@ -73,7 +76,7 @@ const checkCredentials = () => {
 
 export const menu = async () => {
   const banner = await showBanner();
-  //console.clear();
+  console.clear();
   console.log(banner);
   checkCredentials();
   const menuScreen = await inquirer.prompt(
