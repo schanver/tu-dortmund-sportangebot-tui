@@ -110,7 +110,7 @@ const selectCourseDay = async ( courseName ) => {
           if (anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
-            if (isDebugMode) console.debug('Clicken auf' + courseName + '...');
+            if (isDebugMode) console.debug('Clicken auf ' + courseName + '...');
             await anchor.click();
             found = true;
             if (isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
