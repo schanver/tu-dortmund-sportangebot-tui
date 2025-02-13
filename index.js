@@ -64,7 +64,7 @@ const checkCredentials = () => {
       throw new Error(chalk.red.bold("Bitte geben Sie ihre Dienstleistungsnummer ein!"));
     }
       if (parseInt(status) < 1 || parseInt(status) > 12) {
-          throw new Errorr(chalk.red.bold("Bitte geben Sie eine gültiges Status ein!"));
+          throw new Error(chalk.red.bold("Bitte geben Sie eine gültiges Status ein!"));
       }
 
     console.log(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
@@ -90,6 +90,7 @@ export const menu = async () => {
     if (error.isTtyError) {
     } else {
       if (error === InterruptedPrompt.EVENT_INTERRUPTED) {
+        console.log("\nTschüss...");
         process.exit(0);
       }
     }
