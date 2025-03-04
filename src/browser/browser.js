@@ -1,12 +1,13 @@
-import chalk from 'chalk';
-import puppeteer from 'puppeteer';
-import inquirer  from 'inquirer';
+import chalk from "chalk";
+import puppeteer from "puppeteer";
+import inquirer  from "inquirer";
 import InterruptedPrompt from "inquirer-interrupted-prompt";
-import autocompletePrompt from 'inquirer-autocomplete-prompt';
-import 'dotenv/config';
-import { PROJECT_ROOT ,menu,showBanner,isDebugMode} from '../../index.js';
-import { fetchList } from './fetchList.js';
-import path from 'path';
+import autocompletePrompt from "inquirer-autocomplete-prompt";
+import "dotenv/config";
+import { PROJECT_ROOT ,menu,showBanner,isDebugMode} from "../../index.js";
+import { fetchList } from "./fetchList.js";
+import path from "path";
+import { mkdir } from "fs/promises";
 
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
@@ -385,25 +386,16 @@ const fillCredentials = async (page, courseName) => {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
       await new Promise(resolve => setTimeout(resolve, 3000));
-     /* try {
-        // This should be fixed urgently tbh, find the time to fix it 
-        const picDir = path.resolve(PROJECT_ROOT, './screenshots/'); 
-        // Take a screenshot and save it to the constructed path
-        await page.screenshot({ path: picDir });
-        console.log(`Buchungsfoto kann in ${filePath} gefunden werden`);
-      } catch (error) {
-        console.error("Error taking screenshot:", error);
-      }
-      console.log(chalk.green("Das Photo von Buchungsticket kann im  Ordner \"screenshots\" gefunden werden"));
-      await page.waitForNetworkIdle();
-    */
     }
   }
   finally {
     const picName = new Date().toISOString().substring(0,16).replace('T',' ') + ' ' + courseName; 
-    const picDir = path.resolve(PROJECT_ROOT, `./screenshots/${picName}.png`); 
+    const screenshotDir = path.resolve(PROJECT_ROOT, 'screenshots');
+    await mkdir(screenshotDir, { recursive: true });
+
+    const picDir = path.resolve(screenshotDir, `${picName}.png`); 
     // Take a screenshot and save it to the constructed path
-    await page.screenshot({ path: picDir });
+    await page.screenshot({ path: picDir});
     console.log(`Buchungsfoto kann in \"screenshots\"-Ordner gefunden werden`);
     console.log("Browser wird geschlossen...");
     await browser.close();
