@@ -37,6 +37,7 @@ export const showBanner = async () => {
     const bannerBoard = boxen(chalk.bold.green(banner));
     return bannerBoard;
 }
+// TODO: Fix this awful mess of garbage
 const checkCredentials = () => {
   try {
     const name = process.env.NAME;
