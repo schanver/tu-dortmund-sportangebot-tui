@@ -1,54 +1,107 @@
 import boxen from 'boxen';
 import fs from 'fs';
+import path from 'path';
 import chalk from 'chalk';
+import inquirer from 'inquirer';
 import { PROJECT_ROOT } from './config.js';
+import { selectCourse } from './browser.js';
+const filePath = path.resolve(PROJECT_ROOT, "data.json");
 
-const path = `${PROJECT_ROOT}/data.json`;
 /**
  * Saves key-value pairs to a JSON file.
  * @param {Object} data - The key-value pairs to save.
- * @param {string} filePath - The JSON file path (default: "data.json").
- */
-export function saveToJson(data, filePath = "./data.json") {
-  let existingData = {};
+**/
 
-  // Read existing data if the file exists
-  if (fs.existsSync(filePath)) {
-    existingData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+export function saveToJson(data) {
+  try {
+    let existingData = [];
+
+    // Check if the file exists and read its content
+    if (fs.existsSync(filePath)) {
+      const fileContent = fs.readFileSync(filePath, "utf8");
+
+      // Parse existing data, ensuring it's an array
+      existingData = JSON.parse(fileContent);
+      if (!Array.isArray(existingData)) {
+        existingData = [existingData]; 
+      }
+    }
+    // Append new data as a separate entry
+    existingData.push(data);
+
+    // Write updated data back to the file
+    fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
+
+    console.log(`Data appended to ${chalk.bold.green(filePath)}`);
+  } catch (error) {
+    console.error("Error saving JSON file:", error);
   }
-
-  // Merge new data with existing data
-  const updatedData = { ...existingData, ...data };
-
-  // Write to file
-  fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2));
-
-  console.log(`Data saved to ${filePath}`);
 }
 
-export function getUpcomingCourses() {
-  if (!fs.existsSync(path)) {
-    console.error(`File ${path} not found.`);
+export async function getUpcomingCourses() {
+  if (!fs.existsSync(filePath)) {
+    console.error(`File ${chalk.bold.yellow(filePath)} not found.`);
     return [];
   }
 
-  // Read and parse JSON file
-  const courses = JSON.parse(fs.readFileSync(path, "utf8"));
+  try {
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    let courses = JSON.parse(fileContent);
 
-  // Get today's date without time
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    if (!Array.isArray(courses)) {
+      courses = [courses]; 
+    }
 
-  // Filter upcoming courses
-const upcomingCourses = courses.filter(course => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Filter upcoming courses
+    const upcomingCourses = courses
+    .filter(course => {
+      if (!course.courseDate) return false;
+
       const [day, month, year] = course.courseDate.split(".").map(Number);
-      const courseDate = new Date(year, month - 1, day); 
+      if (!day || !month || !year) return false;
+
+      const courseDate = new Date(year, month - 1, day);
       return courseDate >= today;
     })
     .map(course => `${course.courseName}, ${course.courseDate} ${course.courseTime}`)
     .join("\n");
-  return upcomingCourses;
+
+    console.log("\n\n\n"+
+      boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: "round" }));
+
+    const choicesForBookedCourses = ["Für einen Kurs anmelden", "Program beenden"];
+    const bookedCourses = await inquirer.prompt(
+    {
+      type: "list",
+      name: "listOptions",
+      message: chalk.yellow("Was möchten Sie tun?"),
+      choices: choicesForBookedCourses
+    })
+    switch(bookedCourses.listOptions) {
+      case choicesForBookedCourses[0]:
+        await selectCourse();
+        break;
+      case choicesForBookedCourses[1]:
+        console.log(chalk.bold.green("Program beendet. Tschüss..."));
+        process.exit(0);
+    }
+
+  } catch (error) {
+    console.error("Error reading or parsing JSON:", error);
+    return "No upcoming courses.";
+  }
 }
 
+// --- TESTING ---
+
+// Save sample courses
+/* saveToJson({ courseName: "Bungee Jumping", courseTime: "18:00-20:00", courseDate: "10.04.2025" });
+saveToJson({ courseName: "Basketball", courseTime: "20:00-22:00", courseDate: "19.03.2025" });
+
 const upcomingCourses = getUpcomingCourses();
-console.log(boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses || "No upcoming courses"))); 
+console.log(
+  boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses), { padding: 1, borderStyle: "round" })
+); */

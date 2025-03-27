@@ -95,9 +95,10 @@ export const menu = async () => {
       await selectCourse();
       break;
     case menuChoices[1]:
+      await getUpcomingCourses();
       break;
     case menuChoices[2]:
-      console.log("Tschüss...");
+      console.log(chalk.bold.green("Progream beendet.Tschüss..."));
       process.exit(0);
   }
 };
