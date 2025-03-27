@@ -2,20 +2,13 @@ import inquirer from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import boxen from 'boxen';
 import chalk from 'chalk';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath  } from 'url';
 import { selectCourse } from './src/browser/browser.js';
+import { getUpcomingCourses } from './src/data/database.js';
 
 InterruptedPrompt.fromAll(inquirer);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-export const PROJECT_ROOT = __dirname;
 export let isDebugMode = process.env.DEBUG==="true";
 
 // Resolve the path to the .env file relative to the index.js file
-dotenv.config({ path: path.resolve(__dirname, './.env') });
 
 const menuChoices = [
   "Für einen Kurs anmelden",

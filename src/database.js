@@ -1,8 +1,9 @@
 import boxen from 'boxen';
 import fs from 'fs';
 import chalk from 'chalk';
+import { PROJECT_ROOT } from './config.js';
 
-const path = "./data.json"
+const path = `${PROJECT_ROOT}/data.json`;
 /**
  * Saves key-value pairs to a JSON file.
  * @param {Object} data - The key-value pairs to save.
@@ -39,8 +40,7 @@ export function getUpcomingCourses() {
   today.setHours(0, 0, 0, 0);
 
   // Filter upcoming courses
-const upcomingCourses = courses
-    .filter(course => {
+const upcomingCourses = courses.filter(course => {
       const [day, month, year] = course.courseDate.split(".").map(Number);
       const courseDate = new Date(year, month - 1, day); 
       return courseDate >= today;
@@ -50,5 +50,5 @@ const upcomingCourses = courses
   return upcomingCourses;
 }
 
-//const upcomingCourses = getUpcomingCourses();
-//console.log(boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses || "No upcoming courses"))); 
+const upcomingCourses = getUpcomingCourses();
+console.log(boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses || "No upcoming courses"))); 
