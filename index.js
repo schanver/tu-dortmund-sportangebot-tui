@@ -2,8 +2,8 @@ import inquirer from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import boxen from 'boxen';
 import chalk from 'chalk';
-import { selectCourse } from './src/browser/browser.js';
-import { getUpcomingCourses } from './src/data/database.js';
+import { selectCourse } from './src/browser.js';
+import { getUpcomingCourses } from './src/database.js';
 
 InterruptedPrompt.fromAll(inquirer);
 export let isDebugMode = process.env.DEBUG==="true";
