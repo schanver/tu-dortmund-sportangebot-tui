@@ -20,6 +20,6 @@
     "inquirer-autocomplete-prompt": "^3.0.1",
     "inquirer-interrupted-prompt": "^3.0.0",
     "path": "^0.12.7",
-    "puppeteer": "^22.10.0"
+    "puppeteer": "^22.15.0"
   }
 }
