@@ -10,7 +10,7 @@ export async function fetchList() {
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
-      timeout: 10000
+      timeout: 8000
     });
   try {
     // Wait for the menu to load

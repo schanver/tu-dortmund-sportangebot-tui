@@ -8,7 +8,6 @@ import { getUpcomingCourses } from './src/database.js';
 InterruptedPrompt.fromAll(inquirer);
 export let isDebugMode = process.env.DEBUG==="true";
 
-// Resolve the path to the .env file relative to the index.js file
 
 const menuChoices = [
   "Für einen Kurs anmelden",

@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { PROJECT_ROOT } from './config.js';
 import { selectCourse } from './browser.js';
+import { isDebugMode } from '../index.js';
 const filePath = path.resolve(PROJECT_ROOT, "data.json");
 
 /**
@@ -16,8 +17,11 @@ export function saveToJson(data) {
   try {
     let existingData = [];
 
-    // Check if the file exists and read its content
-    if (fs.existsSync(filePath)) {
+    // Check if the file exists and read its content, if not create a new file at the same location
+    if (!fs.existsSync(filePath)) {
+      if(isDebugMode) console.debug("Erstellen einer JSON-Datei...");
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+    }
       const fileContent = fs.readFileSync(filePath, "utf8");
 
       // Parse existing data, ensuring it's an array
@@ -25,7 +29,7 @@ export function saveToJson(data) {
       if (!Array.isArray(existingData)) {
         existingData = [existingData]; 
       }
-    }
+    
     // Append new data as a separate entry
     existingData.push(data);
 
@@ -34,19 +38,23 @@ export function saveToJson(data) {
 
     console.log(`Data appended to ${chalk.bold.green(filePath)}`);
   } catch (error) {
-    console.error("Error saving JSON file:", error);
+    console.error("Fehler beim Speichern des JSON-Datei", error);
   }
 }
-
+// TODO: Check if the JSON file is empty// TODO: Check if the JSON file is empty  
 export async function getUpcomingCourses() {
   if (!fs.existsSync(filePath)) {
-    console.error(`File ${chalk.bold.yellow(filePath)} not found.`);
+    console.error(`Datei ${chalk.bold.yellow(filePath)} nicht gefunden.`);
     return [];
   }
 
   try {
     const fileContent = fs.readFileSync(filePath, "utf8");
     let courses = JSON.parse(fileContent);
+    if(!courses || courses.trim() === '') {
+      console.error(`Keine angemeldete Kurse gefunden!`);
+      return [];
+    }
 
     if (!Array.isArray(courses)) {
       courses = [courses]; 
@@ -70,7 +78,7 @@ export async function getUpcomingCourses() {
     .join("\n");
 
     console.log("\n\n\n"+
-      boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: "round" }));
+      boxen(chalk.bold.yellow("Kommende Kurse:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: "round" }));
 
     const choicesForBookedCourses = ["Für einen Kurs anmelden", "Program beenden"];
     const bookedCourses = await inquirer.prompt(
