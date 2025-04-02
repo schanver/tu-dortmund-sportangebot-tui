@@ -13,7 +13,7 @@ const filePath = path.resolve(PROJECT_ROOT, "data.json");
  * @param {Object} data - The key-value pairs to save.
 **/
 
-export function saveToJson(data) {
+export async function saveToJson(data) {
   try {
     let existingData = [];
 
@@ -51,7 +51,7 @@ export async function getUpcomingCourses() {
   try {
     const fileContent = fs.readFileSync(filePath, "utf8");
     let courses = JSON.parse(fileContent);
-    if(!courses || courses.trim() === '') {
+    if(!courses) {
       console.error(`Keine angemeldete Kurse gefunden!`);
       return [];
     }

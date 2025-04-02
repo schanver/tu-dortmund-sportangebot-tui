@@ -284,7 +284,8 @@ const selectCourseDay = async (courseName) => {
       await fillCredentials(page,courseName, courseID, divText[1]);
     } else {
       console.error("Keine Taste zur Buchung ist verfügbar");
-      // await fillCredentials(page);
+      await new Promise(resolve => setTimeout(resolve, 2000)); 
+      await selectCourse();
     }
   } else {
     console.error("Es ist zurzeit keine Buchung zu diesem Angebot verfügbar.Gehe zurück ins Menü...");
@@ -389,7 +390,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
       // TODO: Add JSON database integration here 
-      saveToJson(
+      await saveToJson(
         {
           courseName: `${courseName} ${courseID?.name || "?"}`, 
           courseDate: date || "?", 
@@ -409,6 +410,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await page.screenshot({ path: picDir});
     console.log(`Buchungsfoto kann in \"screenshots\"-Ordner gefunden werden`);
     console.log("Browser wird geschlossen...");
+    await new Promise(resolve => setTimeout(resolve,2000));
     await browser.close();
     await menu();
   }

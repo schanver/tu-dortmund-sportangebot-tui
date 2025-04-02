@@ -4,3 +4,4 @@ node_modules/
 .env
 *.png
 todo.md
+data.json
