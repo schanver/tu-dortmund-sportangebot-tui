@@ -1,15 +1,15 @@
 # Sportangebot-cli
-A command-line application to book for sports events in TU Dortmund. 
-# Installation 
+A command-line application to book for sports events in TU Dortmund.
+# Installation
 Clone the repository to the desired location using the following command:
 ```bash
 git clone github.com/schanver/tu-dortmund-sportangebot-cli.git
 ````
 Afterwards change into the project directory and type:
-```bash 
-npm ci 
+```bash
+npm ci
 ```
-# Usage 
+# Usage
 First rename the .env.example.md to .env and fill the information needed to process with the booking.
 
 ```env
@@ -18,10 +18,10 @@ NACHNAME=Musterman
 
 STRASSE_NO=Bayrische Str. 24
 
-# Format: [PLZ] [Stadt]  
-PLZ_STADT=44147 Dortmund       
+# Format: [PLZ] [Stadt]
+PLZ_STADT=44147 Dortmund
 # M -> männlich, W -> weiblich, D -> divers, X -> keine Angabe
-GESCHLECHT=M               
+GESCHLECHT=M
 EMAIL=max.musterman@mail.com
 TELEFONNUMMER=0123456789
 
@@ -40,13 +40,13 @@ STATUS=1
                                # 12 => Beschäftigte/r einer anderen Hochschule
 
 # Für Studierende
-MATRIKELNUMMER= 
+MATRIKELNUMMER=
 
 # Für Beschäftigte/r und Azubi
-DIENSTL_NO=                 
+DIENSTL_NO=
 
 # Für Sportkarte exklusiv Angebote
-IBAN=                        
+IBAN=
 ```
 
 Afterwards run the program with:
@@ -57,7 +57,7 @@ node index.js
 
 
 
-# Requirements 
+# Requirements
 ```Nodejs```, ```a Chromium based Browser```
 
 

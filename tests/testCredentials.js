@@ -6,9 +6,9 @@ import { PROJECT_ROOT } from './../src/config.js';
 
 const testCredentials = () => {
   if(!fs.existsSync(`${PROJECT_ROOT}/.env`)) {
-    console.log(chalk.bold.red("Keine .env-Datei gefunden! Bitte erstellen Sie eine .env-Datei im Projektquell und füllen Sie die je nach dem .env-example.md Datei!"));
+    console.log(chalk.bold.red("Keine .env-Datei gefunden! Bitte erstellen Sie eine .env-Datei im Projektquelle und füllen Sie die je nach dem .env-example.md Datei!"));
   } else {
-    console.log(chalk.green.bold("Lauft :) "));
+    console.log(chalk.green.bold(".env-Datei ist erfolgreich geladen"));
   }
 
 }
