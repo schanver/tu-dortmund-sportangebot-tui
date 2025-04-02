@@ -6,7 +6,7 @@ import inquirer from 'inquirer';
 import { PROJECT_ROOT } from './config.js';
 import { selectCourse } from './browser.js';
 import { isDebugMode } from '../index.js';
-const filePath = path.resolve(PROJECT_ROOT, "data.json");
+const filePath = path.resolve(PROJECT_ROOT, ".data.json");
 
 /**
  * Saves key-value pairs to a JSON file.
@@ -36,12 +36,12 @@ export async function saveToJson(data) {
     // Write updated data back to the file
     fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
 
-    console.log(`Data appended to ${chalk.bold.green(filePath)}`);
+    if(isDebugMode) console.debug(`Datei ist zum ${chalk.bold.green(filePath)} gespeichert.`);
   } catch (error) {
     console.error("Fehler beim Speichern des JSON-Datei", error);
   }
 }
-// TODO: Check if the JSON file is empty// TODO: Check if the JSON file is empty  
+// TODO: Check if the JSON file is empty
 export async function getUpcomingCourses() {
   if (!fs.existsSync(filePath)) {
     console.error(`Datei ${chalk.bold.yellow(filePath)} nicht gefunden.`);
@@ -77,8 +77,8 @@ export async function getUpcomingCourses() {
     .map(course => `${course.courseName}, ${course.courseDate} ${course.courseTime}`)
     .join("\n");
 
-    console.log("\n\n\n"+
-      boxen(chalk.bold.yellow("Kommende Kurse:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: "round" }));
+    console.log(
+    boxen(chalk.bold.yellow("Kommende Kurse:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: 'doubleSingle'  }));
 
     const choicesForBookedCourses = ["Für einen Kurs anmelden", "Program beenden"];
     const bookedCourses = await inquirer.prompt(
@@ -98,18 +98,8 @@ export async function getUpcomingCourses() {
     }
 
   } catch (error) {
-    console.error("Error reading or parsing JSON:", error);
-    return "No upcoming courses.";
+    console.error("Fehler beim Verarbeitung der JSON-Datei!", error);
+    return "Keine vorkommende Kurse.";
   }
 }
 
-// --- TESTING ---
-
-// Save sample courses
-/* saveToJson({ courseName: "Bungee Jumping", courseTime: "18:00-20:00", courseDate: "10.04.2025" });
-saveToJson({ courseName: "Basketball", courseTime: "20:00-22:00", courseDate: "19.03.2025" });
-
-const upcomingCourses = getUpcomingCourses();
-console.log(
-  boxen(chalk.bold.yellow("Upcoming courses:\n") + chalk.green(upcomingCourses), { padding: 1, borderStyle: "round" })
-); */

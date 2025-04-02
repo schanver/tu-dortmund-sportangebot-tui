@@ -2,12 +2,16 @@ import inquirer from 'inquirer';
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import boxen from 'boxen';
 import chalk from 'chalk';
+import dotenv from 'dotenv';
+import path from 'path';
 import { selectCourse } from './src/browser.js';
 import { getUpcomingCourses } from './src/database.js';
+import { PROJECT_ROOT } from './src/config.js';
 
 InterruptedPrompt.fromAll(inquirer);
-export let isDebugMode = process.env.DEBUG==="true";
 
+export let isDebugMode = process.env.DEBUG==="true";
+dotenv.config({ path: path.resolve(PROJECT_ROOT, '.env') });
 
 const menuChoices = [
   "Für einen Kurs anmelden",
@@ -22,13 +26,15 @@ const banner = `
      "# #   #  #   #   #       #    m"""#  #   #  #   #  #""""  #   #  #   #    #   
  "mmm#" ##m#"  "#m#"   #       "mm  "mm"#  #   #  "#m"#  "#mm"  ##m#"  "#m#"    "mm 
         #                                          m  #                             
-        "                                           ""                    
-`;
+        "                                           ""   v1.0.0                 
+`; 
+
 
 export const showBanner = async () => {
-    const bannerBoard = boxen(chalk.bold.green(banner));
+    const bannerBoard = boxen(chalk.bold(banner), { borderStyle: 'singleDouble', align : 'left' });
     return bannerBoard;
 }
+
 // TODO: Fix this awful mess of garbage
 const checkCredentials = () => {
   try {
@@ -60,7 +66,7 @@ const checkCredentials = () => {
           throw new Error(chalk.red.bold("Bitte geben Sie eine gültiges Status ein!"));
       }
 
-    console.log(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
+    if(isDebugMode) console.debug(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
   } catch (error) {
     console.error(error.message); 
     process.exit(1); 
@@ -97,7 +103,7 @@ export const menu = async () => {
       await getUpcomingCourses();
       break;
     case menuChoices[2]:
-      console.log(chalk.bold.green("Progream beendet.Tschüss..."));
+      console.log(chalk.bold("Program beendet.Tschüss..."));
       process.exit(0);
   }
 };

@@ -14,7 +14,7 @@ import { saveToJson } from "./database.js";
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await puppeteer.launch({headless: 'shell'});
+const browser = await puppeteer.launch({headless: false,slowMo:10});
 let bookingCompleted = false;
 
 export const visitorStatus = [
@@ -91,7 +91,7 @@ const selectCourseDay = async (courseName) => {
   let page = await browser.newPage();
   await page.setViewport({ width: 1980, height: 1200 });
   
-//await dontLoadMediaContent(page);
+  await dontLoadMediaContent(page);
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
@@ -112,13 +112,13 @@ const selectCourseDay = async (courseName) => {
           if(isDebugMode) console.debug(`Comparing ${anchorText} to ${courseName}...`);
           if(anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
-            await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), anchor);
+            await page.evaluate(el => el.scrollIntoView(), anchor);
             if(isDebugMode) console.debug('Clicken auf ' + courseName + '...');
             await anchor.click();
             found = true;
             if(isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
             // Wait for the navigation to complete
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 });
             break; 
           }  
         }
@@ -158,18 +158,18 @@ const selectCourseDay = async (courseName) => {
         cells.forEach((cell, index) => {
           if(index == 1) { // Name of the course
             tableObject.name = cell.textContent.trim();
-          } 
+          }
           else if(index == 2) { // Day of the course
-            tableObject.day = cell.innerHTML.split('<br>')[0].trim();
-          } 
+            tableObject.day = cell.innerHTML ? cell.innerHTML.split('<br>')[0].trim() : "";
+          }
           else if(index == 3) { // Time of the course
-            tableObject.time = cell.innerHTML.split('<br>')[0].trim();
-          } 
+            tableObject.time = cell.innerHTML ? cell.innerHTML.split('<br>')[0].trim() : "";
+          }
           else if(index == 4) { // Location of the course
-            tableObject.place = cell.innerHTML
-                                    .replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
+            tableObject.place = cell.innerHTML ? 
+                                    cell.innerHTML.replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
                                     .replace(/<br\s*\/?>/gi, ' ')
-                                    .trim();
+                                    .trim() : "";
           } 
           else if(index == cells.length - 1) { // Booking button or status
             const button = cell.querySelector('input[type="submit"]');
@@ -390,7 +390,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
       // TODO: Add JSON database integration here 
-      await saveToJson(
+      saveToJson(
         {
           courseName: `${courseName} ${courseID?.name || "?"}`, 
           courseDate: date || "?", 
@@ -401,7 +401,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     }
   }
   finally {
-    const picName = new Date().toISOString().substring(0,16).replace('T',' ') + ' ' + courseName; 
+    const picName = `${date} ${courseName} ${courseID?.name || " "}`; 
     const screenshotDir = path.resolve(PROJECT_ROOT, 'screenshots');
     await mkdir(screenshotDir, { recursive: true });
 
