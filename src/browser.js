@@ -14,7 +14,7 @@ import { saveToJson } from "./database.js";
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await puppeteer.launch({headless: false,slowMo:10});
+const browser = await puppeteer.launch({headless: 'shell'});
 let bookingCompleted = false;
 
 export const visitorStatus = [
@@ -390,13 +390,13 @@ const fillCredentials = async (page, courseName, courseID,date) => {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
       // TODO: Add JSON database integration here 
-      saveToJson(
+     await saveToJson(
         {
           courseName: `${courseName} ${courseID?.name || "?"}`, 
           courseDate: date || "?", 
           courseTime: courseID?.time || "?"
         }
-      );  
+      );
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }

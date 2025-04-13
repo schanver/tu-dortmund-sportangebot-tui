@@ -78,7 +78,7 @@ export async function getUpcomingCourses() {
     .join("\n");
 
     console.log(
-    boxen(chalk.bold.yellow("Kommende Kurse:\n") + chalk.green(upcomingCourses || "No upcoming courses"), { padding: 1, borderStyle: 'doubleSingle'  }));
+    boxen(chalk.bold.yellow("Kommende Kurse:\n") + chalk.green(upcomingCourses || "Keine kommende Kurse"), { padding: 1, borderStyle: 'doubleSingle'  }));
 
     const choicesForBookedCourses = ["Für einen Kurs anmelden", "Program beenden"];
     const bookedCourses = await inquirer.prompt(
