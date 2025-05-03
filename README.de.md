@@ -60,6 +60,12 @@ IBAN=
 DEBUG=false
 ```
 
+Führen Sie dann die Tests mit aus:
+``` bash
+npm test
+```
+
+Überprüfen Sie, ob Sie die .env korrekt ausgefüllt haben.
 Starten Sie anschließend das Programm mit:
 
 ```bash

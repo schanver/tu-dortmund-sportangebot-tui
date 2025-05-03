@@ -35,49 +35,11 @@ export const showBanner = async () => {
     return bannerBoard;
 }
 
-// TODO: Fix this awful mess of garbage
-const checkCredentials = () => {
-  try {
-    const name = process.env.NAME;
-    const nachname = process.env.NACHNAME;
-    const street_no = process.env.STRASSE_NO;
-    const plz_stadt = process.env.PLZ_STADT;
-    const matrikel_no = process.env.MATRIKELNUMMER;
-    const email = process.env.EMAIL; 
-    const phone_no = process.env.PHONE_NO;
-    const status = process.env.STATUS;
-    const dl_no = process.env.DIENSTL_NO;
-    const iban = process.env.IBAN;
-    const geschlecht = process.env.GESCHLECHT;
-
-    // Check if the mandatory values are present
-    if (!name || !nachname || !street_no || !plz_stadt || !email || !phone_no || !status || !geschlecht) {
-      throw new Error("Bitte füllen Sie die benötigte Informationen aus!");
-    }
-
-    if ([1, 2, 3, 4].includes(parseInt(status)) && (!matrikel_no || matrikel_no.length === 0)) {
-      throw new Error(chalk.red.bold("Bitte geben Sie ihre Matrikelnummer ein!"));
-    }
-
-    if ([5, 6, 7, 8, 11, 12].includes(parseInt(status)) && (!dl_no || dl_no.length === 0)) {
-      throw new Error(chalk.red.bold("Bitte geben Sie ihre Dienstleistungsnummer ein!"));
-    }
-      if (parseInt(status) < 1 || parseInt(status) > 12) {
-          throw new Error(chalk.red.bold("Bitte geben Sie eine gültiges Status ein!"));
-      }
-
-    if(isDebugMode) console.debug(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
-  } catch (error) {
-    console.error(error.message); 
-    process.exit(1); 
-  }
-};
 
 export const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
-  checkCredentials();
   const menuScreen = await inquirer.prompt(
     {
       type: "list",

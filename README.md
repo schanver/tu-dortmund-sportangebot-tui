@@ -55,6 +55,12 @@ IBAN=
 DEBUG=false
 ```
 
+Then run the tests with:
+``` bash
+npm test
+```
+Check if you filled the .env correctly.
+
 Afterwards run the program with:
 
 ``` bash
