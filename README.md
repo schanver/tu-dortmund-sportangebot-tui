@@ -1,4 +1,4 @@
-# Sportangebot-cli
+# tu-dortmund-sportangebot-cli
 A command-line application to book for sports events in TU Dortmund. This README file is written in English. If you want to read the German version, you can read it [here](README.de.md)
 # Installation
 Clone the repository to the desired location using the following command:
