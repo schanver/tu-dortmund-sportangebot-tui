@@ -272,8 +272,6 @@ const selectCourseDay = async (courseName) => {
     }, dateSelector[0]);
     
   // TODO: Get the date from here
-    if(isDebugMode) console.table(divText);
-    if(isDebugMode) console.log(divText[1]);
 
     // Click on the button if it has "buchen" on the name   
     const bookingButton = await page.$('input[type="submit"][class="inlbutton buchen"][value="buchen"]');
@@ -377,19 +375,20 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     // Click the submit button
     await page.click('input[type="submit"][value="verbindlich buchen"]');
     if(isDebugMode) console.log('Auf dem Submit-Button geclickt...');
-    await page.waitForNavigation({waitUntil: 'networkidle2'});
-
+    await page.waitForNetworkIdle();
 
     const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
+    console.debug(alreadyBooked);
     if(alreadyBooked) {
-      console.log(chalk.yellow("Sie haben schon für dieses Angebot eine Buchung!Zurück zum Menü in 5 Sekunden..."));
+      const bookingMessage = await page.$eval('form[name="bsform"] .bs_meldung', el => el.innerText.trim());
+      console.log(chalk.yellow("Meldung vom Buchungssystem:"));
+      console.log(bookingMessage);
       await new Promise(resolve => setTimeout(resolve, 5000));
       await menu();
     }
     else {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
       bookingCompleted = true;
-      // TODO: Add JSON database integration here 
      await saveToJson(
         {
           courseName: `${courseName} ${courseID?.name || "?"}`, 
