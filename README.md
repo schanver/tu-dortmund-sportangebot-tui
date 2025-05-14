@@ -70,7 +70,7 @@ node index.js
 
 
 # Requirements
-```Nodejs```, ```a Chromium based Browser```
+[Node.js](https://nodejs.org/en/download)
 
 
 

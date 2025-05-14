@@ -72,7 +72,7 @@ Starten Sie anschließend das Programm mit:
 node index.js
 ```
 
-# Erforderliche Software
+# Erforderlich
+[Node.js](https://nodejs.org/en/download)
 
-`Nodejs`, `ein Chromium basierter Browser`
 

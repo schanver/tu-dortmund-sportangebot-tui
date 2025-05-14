@@ -16,7 +16,7 @@ const testCredentials = () => {
       const plz_stadt = process.env.PLZ_STADT;
       const matrikel_no = process.env.MATRIKELNUMMER;
       const email = process.env.EMAIL; 
-      const phone_no = process.env.PHONE_NO;
+      const phone_no = process.env.TELEFON_NO;
       const status = process.env.STATUS;
       const dl_no = process.env.DIENSTL_NO;
       const iban = process.env.IBAN;

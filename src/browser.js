@@ -109,7 +109,7 @@ const selectCourseDay = async (courseName) => {
         let found = false;
         for(const anchor of anchors) {
           const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
-          if(isDebugMode) console.debug(`Comparing ${anchorText} to ${courseName}...`);
+          if(isDebugMode) console.debug(`Vergleich von ${anchorText} mit ${courseName}...`);
           if(anchorText.toLowerCase() === courseName.toLowerCase()) {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView(), anchor);
@@ -123,7 +123,7 @@ const selectCourseDay = async (courseName) => {
           }  
         }
         if(!found) { 
-          console.error("Dieser Kurs ist leider nicht gefunden werden!");
+          console.error("Dieser Kurs ist leider nicht gefunden!");
           await selectCourse();
           process.exit(0);
         }
@@ -237,8 +237,8 @@ const selectCourseDay = async (courseName) => {
     obj.day  === stripAnsi(courseParts[1]) &&
     obj.time === stripAnsi(courseParts[2])
 );
-  console.log(courseID);  
-  console.log(courseName + " " + courseID.name);
+  //console.log(courseID);  
+  //console.log(courseName + " " + courseID.name);
       if(isDebugMode) console.debug(`Die Taste mit dem ID ${courseID} wurde geclickt...`);
 
       // Press the link and wait for the target tab
@@ -315,20 +315,30 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await plz_cityTextField.click();
     await plz_cityTextField.type(process.env.PLZ_STADT);
 
+    if(isDebugMode) {
+      console.debug(`Name: ${process.env.NAME}`);
+      console.debug(`Nachname: ${process.env.NACHNAME}`);
+      console.debug(`Straßenummer: ${process.env.STRASSE_NO}`);
+      console.debug(`PLZ und Stadt: ${process.env.PLZ_STADT}`);
+    }
+
 
 
     const userStatus = visitorStatus[parseInt(process.env.STATUS)];
     const status = await page.$('#BS_F1600');
     await status.select(userStatus);
 
+    if(isDebugMode) console.debug(`Status: ${userStatus}`);
+
     let isDisabled;
     const matriculationNumber = await page.$('#BS_F1700');
     if(matriculationNumber) {
-    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);
-    if(!isDisabled) {
-      await matriculationNumber.click();
-      await matriculationNumber.type(process.env.MATRIKELNUMMER);
-    }
+      isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);
+      if(!isDisabled) {
+        await matriculationNumber.click();
+        await matriculationNumber.type(process.env.MATRIKELNUMMER);
+        if(isDebugMode) console.debug(`Matrikelnummer: ${process.env.MATRIKELNUMMER}`);
+      }
     }
    
 
@@ -337,18 +347,20 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), officialPhone);
     if(!isDisabled) {
       await officialPhone.click();
-      await officialPhone.type(process.env.DIENSTLEISTUNG_PHONE);
+      await officialPhone.type(process.env.DIENSTL_NO);
+      if(isDebugMode) console.debug(`Dienstleistungsnummer: ${process.env.DIENSTL_NO}`);
     }
     }
 
-    if(isDebugMode) console.log(process.env.EMAIL);
+    if(isDebugMode) console.debug(`Email: ${process.env.EMAIL}`);
     const email = await page.$('#BS_F2000');
     await email.click();
     await email.type(process.env.EMAIL);
 
+    if(isDebugMode) console.debug(`Telefonnummer: ${process.env.TELEFON_NO}`);
     const phoneNo = await page.$('#BS_F2100');
     await phoneNo.click();
-    await phoneNo.type(process.env.PHONE_NO);
+    await phoneNo.type(process.env.TELEFON_NO);
 
     const iban = await page.$('#BS_F_iban');
     if(iban) {
@@ -378,7 +390,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await page.waitForNetworkIdle();
 
     const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
-    console.debug(alreadyBooked);
+    if(isDebugMode) console.debug(alreadyBooked);
     if(alreadyBooked) {
       const bookingMessage = await page.$eval('form[name="bsform"] .bs_meldung', el => el.innerText.trim());
       console.log(chalk.yellow("Meldung vom Buchungssystem:"));
@@ -387,13 +399,13 @@ const fillCredentials = async (page, courseName, courseID,date) => {
       await menu();
     }
     else {
-      console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht"));
+      console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht!"));
       bookingCompleted = true;
      await saveToJson(
         {
-          courseName: `${courseName} ${courseID?.name || "?"}`, 
-          courseDate: date || "?", 
-          courseTime: courseID?.time || "?"
+          courseName: `${courseName} ${courseID?.name || " "}`, 
+          courseDate: date || " ", 
+          courseTime: courseID?.time || " "
         }
       );
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -408,7 +420,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     // Take a screenshot and save it to the constructed path
     await page.screenshot({ path: picDir});
     console.log(`Buchungsfoto kann in \"screenshots\"-Ordner gefunden werden`);
-    console.log("Browser wird geschlossen...");
+    console.log("Browser wird geschlossen, bitte haben Sie etwas Geduld...");
     await new Promise(resolve => setTimeout(resolve,2000));
     await browser.close();
     await menu();
