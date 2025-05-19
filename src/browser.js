@@ -336,8 +336,8 @@ const fillCredentials = async (page, courseName, courseID,date) => {
       isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);
       if(!isDisabled) {
         await matriculationNumber.click();
-        await matriculationNumber.type(process.env.MATRIKELNUMMER);
-        if(isDebugMode) console.debug(`Matrikelnummer: ${process.env.MATRIKELNUMMER}`);
+        await matriculationNumber.type(process.env.MATRIKEL_NR);
+        if(isDebugMode) console.debug(`Matrikelnummer: ${process.env.MATRIKEL_NR}`);
       }
     }
    
