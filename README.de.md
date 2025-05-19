@@ -23,7 +23,7 @@ Benennen Sie zunächst die .env.example.md in .env um und füllen Sie die Inform
 NAME=Max
 NACHNAME=Musterman
 
-STRASSE_NO=Bayrische Str. 24
+STRASSE_NR=Bayrische Str. 24
 
 # Format: [PLZ] [Stadt]
 PLZ_STADT=44147 Dortmund
@@ -31,7 +31,7 @@ PLZ_STADT=44147 Dortmund
 GESCHLECHT=M
 
 EMAIL=max.musterman@mail.com
-TELEFONNUMMER=0123456789
+TELEFON_NR=0123456789
 
 STATUS=1
                                # 1 => Studierende TU-Dortmund
@@ -48,10 +48,10 @@ STATUS=1
                                # 12 => Beschäftigte/r einer anderen Hochschule
 
 # Für Studierende
-MATRIKELNUMMER=
+MATRIKEL_NR=
 
 # Für Beschäftigte/r und Azubi
-DIENSTL_NO=
+DIENSTL_NR=
 
 # Für Sportkarte exklusiv Angebote
 IBAN=

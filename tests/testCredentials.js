@@ -12,13 +12,13 @@ const testCredentials = () => {
     try {
       const name = process.env.NAME;
       const nachname = process.env.NACHNAME;
-      const street_no = process.env.STRASSE_NO;
+      const street_no = process.env.STRASSE_NR;
       const plz_stadt = process.env.PLZ_STADT;
-      const matrikel_no = process.env.MATRIKELNUMMER;
+      const matrikel_no = process.env.MATRIKEL_NR;
       const email = process.env.EMAIL; 
-      const phone_no = process.env.TELEFON_NO;
+      const phone_no = process.env.TELEFON_NR;
       const status = process.env.STATUS;
-      const dl_no = process.env.DIENSTL_NO;
+      const dl_no = process.env.DIENSTL_NR;
       const iban = process.env.IBAN;
       const geschlecht = process.env.GESCHLECHT;
 

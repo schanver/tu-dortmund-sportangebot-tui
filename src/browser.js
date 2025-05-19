@@ -309,7 +309,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
 
     const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
-    await streetNoTextField.type(process.env.STRASSE_NO);
+    await streetNoTextField.type(process.env.STRASSE_NR);
 
     const plz_cityTextField = await page.$('#BS_F1400');
     await plz_cityTextField.click();
@@ -318,7 +318,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     if(isDebugMode) {
       console.debug(`Name: ${process.env.NAME}`);
       console.debug(`Nachname: ${process.env.NACHNAME}`);
-      console.debug(`Straßenummer: ${process.env.STRASSE_NO}`);
+      console.debug(`Straßenummer: ${process.env.STRASSE_NR}`);
       console.debug(`PLZ und Stadt: ${process.env.PLZ_STADT}`);
     }
 
@@ -347,8 +347,8 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), officialPhone);
     if(!isDisabled) {
       await officialPhone.click();
-      await officialPhone.type(process.env.DIENSTL_NO);
-      if(isDebugMode) console.debug(`Dienstleistungsnummer: ${process.env.DIENSTL_NO}`);
+      await officialPhone.type(process.env.DIENSTL_NR);
+      if(isDebugMode) console.debug(`Dienstleistungsnummer: ${process.env.DIENSTL_NR}`);
     }
     }
 
@@ -357,10 +357,10 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await email.click();
     await email.type(process.env.EMAIL);
 
-    if(isDebugMode) console.debug(`Telefonnummer: ${process.env.TELEFON_NO}`);
+    if(isDebugMode) console.debug(`Telefonnummer: ${process.env.TELEFON_NR}`);
     const phoneNo = await page.$('#BS_F2100');
     await phoneNo.click();
-    await phoneNo.type(process.env.TELEFON_NO);
+    await phoneNo.type(process.env.TELEFON_NR);
 
     const iban = await page.$('#BS_F_iban');
     if(iban) {
