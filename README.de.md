@@ -6,7 +6,7 @@ Diese README ist auf Deutsch geschrieben. Englische Version davon kann [hier](RE
 Klonen Sie das Repository mit folgendem Kommando an den gewünschten Ort:
 
 ```bash
-git clone github.com/schanver/tu-dortmund-sportangebot-cli.git
+git clone https://github.com/schanver/tu-dortmund-sportangebot-cli.git
 ```
 
 Wechseln Sie anschließend in das Projektverzeichnis und geben Sie ein:

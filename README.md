@@ -3,7 +3,7 @@ A command-line application to book for sports events in TU Dortmund. This README
 # Installation
 Clone the repository to the desired location using the following command:
 ```bash
-git clone github.com/schanver/tu-dortmund-sportangebot-cli.git
+git clone https://github.com/schanver/tu-dortmund-sportangebot-cli.git
 ````
 Afterwards change into the project directory and type:
 ```bash
