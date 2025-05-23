@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import fs from 'fs';
 
 import 'dotenv/config';
 import { PROJECT_ROOT } from './../src/config.js';
