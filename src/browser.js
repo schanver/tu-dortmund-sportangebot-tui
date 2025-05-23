@@ -1,3 +1,4 @@
+import boxen from 'boxen';
 import chalk from "chalk";
 import puppeteer from "puppeteer";
 import inquirer  from "inquirer";
@@ -15,6 +16,7 @@ inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
 const browser = await puppeteer.launch({headless: 'shell'});
+//const browser = await puppeteer.launch({headless: false});  // For debugging
 let bookingCompleted = false;
 
 export const visitorStatus = [
@@ -84,6 +86,47 @@ pageSize: 20
   });
   const courseName = courses.selectedCourse;
   await selectCourseDay(courseName);
+};
+
+export const bookSportsCard = async () => {
+  let page = await browser.newPage();
+  await dontLoadMediaContent(page);
+  await page.goto
+  (
+    'https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/_SPORTKARTE.html',
+    {
+      timeout: 20000
+    }
+  );
+  
+  const bookingMenu = await page.$('.bs_kurse');
+  if(bookingMenu) {
+    console.log("Buchungsmenu ist gefunden!");
+  }
+ 
+ const bookingAvailable = await page.evaluate(async () => {
+    const rows = document.querySelectorAll('.bs_kurse tbody tr');
+    for (const row of rows) {
+      const cells = row.querySelectorAll('td');
+      if (!cells.length) continue;
+      const lastCell = cells[cells.length - 1];
+      const button = lastCell.querySelector('input[type="submit"].bs_btn_buchen');
+      if (button) {
+        console.log("Buchung verfügbar:", button.name);
+        await new Promise(resolve => setTimeout(resolve, 2000)); 
+        button.click(); 
+        return { success: true, buttonName: button.name };
+      }
+    }
+    return { success: false };
+  });
+
+  if (bookingAvailable.success) {
+    console.log(`🎉 Buchung wurde eingeleitet: ${bookingAvailable.buttonName}`);
+  } else {
+    console.error("❌ Keine Buchung derzeit verfügbar.");
+    process.exit(1);
+  }
 };
 
 const selectCourseDay = async (courseName) => {
@@ -215,6 +258,9 @@ const selectCourseDay = async (courseName) => {
       disabled : isDisabled,
     };
   });
+    
+    const germanText = await page.$eval('.bs_kursbeschreibung .bslang_de', el => el.innerText.trim());
+    console.log(boxen(germanText));
     // Print the list of available courses
     const availableCourses = await inquirer.prompt(
       {
@@ -250,7 +296,6 @@ const selectCourseDay = async (courseName) => {
       console.error("Fehler beim Clicken auf der Taste oder Wartung auf das Ziel:", error);
       return null; // Return null if there's an error
     });
-
     // Change the current page 
     page = await newTarget.page() // if this fixes the issue...
     await page.waitForNetworkIdle();
@@ -271,7 +316,6 @@ const selectCourseDay = async (courseName) => {
       return bookingDate;
     }, dateSelector[0]);
     
-  // TODO: Get the date from here
 
     // Click on the button if it has "buchen" on the name   
     const bookingButton = await page.$('input[type="submit"][class="inlbutton buchen"][value="buchen"]');
@@ -301,11 +345,11 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
     const nameTextField = await page.$('#BS_F1100');
     await nameTextField.click();
-    await nameTextField.type(process.env.NAME);
+    await nameTextField.type(process.env.NAME || "");
 
     const surnameTextField = await page.$('#BS_F1200');
     await surnameTextField.click();
-    await surnameTextField.type(process.env.NACHNAME);
+    await surnameTextField.type(process.env.NACHNAME || "");
 
     const streetNoTextField = await page.$('#BS_F1300');
     await streetNoTextField.click();
@@ -377,9 +421,33 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     await page.waitForSelector('#bs_submit', {visible: true });
     await page.click('#bs_submit');
 
+    if (isDebugMode) console.log('Submit button clicked – waiting for validation...');
+
+    // Wait for validation errors to appear
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.warn').length > 0;
+    }, { timeout: 6000 }).catch(() => {
+      if (isDebugMode) console.log('No validation warnings appeared.');
+    });
+
+    // Collect any warnings
+    const warnings = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('.bs_form_row.warn'))
+        .map(row => {
+          const label = row.querySelector('label');
+          return label ? label.textContent.trim() : 'Unknown field';
+        });
+    });
+
+    if (warnings.length > 0) {
+      console.log("⚠️ Validation warnings found:");
+      warnings.forEach(w => console.log(" -", w));
+      process.exit(0);
+    } else {
+      console.log("✅ No warnings – proceeding.");
+    }
+
     await page.waitForNetworkIdle();
-
-
     await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
 
 

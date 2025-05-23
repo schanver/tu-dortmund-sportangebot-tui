@@ -18,6 +18,7 @@ export async function fetchList() {
     // Retrieve all course names within the menu
     const courseNames = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('div#bs_content dl.bs_menu a'))
+        .filter(anchor => !["SPORTKARTE","alle freien Kursplätze dieses Zeitraums"].includes(anchor.textContent.trim()))
         .map(anchor => anchor.textContent.trim());
     });
     if(isDebugMode) console.debug("Kursliste ist abgerufen.");
