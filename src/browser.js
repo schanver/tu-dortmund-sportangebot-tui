@@ -300,6 +300,7 @@ const selectCourseDay = async (courseName) => {
     page = await newTarget.page() // if this fixes the issue...
     await page.waitForNetworkIdle();
     const title = await page.title();
+    await page.setViewport({ width: 1980, height: 1200 });
     if(isDebugMode) console.debug(title);
 
   const dateSelector = await page.$$(".bs_form_uni.bs_left.padding0");
@@ -453,7 +454,13 @@ const fillCredentials = async (page, courseName, courseID,date) => {
 
 
     // Click the submit button
-    await page.click('input[type="submit"][value="verbindlich buchen"]');
+    const verbindlichBtn = 'input[type="submit"][value="verbindlich buchen"]';
+    const kostenpfichtigBtn = 'input[tpye="submit"][value="kostepflichtig buchen"]';
+    if(verbindlichBtn) await page.click(verbindlichBtn);
+    else if(kostenpfichtigBtn) await page.click(kostenpfichtigBtn);
+        else console.log("Keine verfügbare Button gefunden!");
+
+
     if(isDebugMode) console.log('Auf dem Submit-Button geclickt...');
     await page.waitForNetworkIdle();
 
@@ -469,6 +476,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     else {
       console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht!"));
       bookingCompleted = true;
+      if(isDebugMode) console.debug("Buchungszustand " + bookingCompleted);
      await saveToJson(
         {
           courseName: `${courseName} ${courseID?.name || " "}`, 
@@ -480,6 +488,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     }
   }
   finally {
+    if(bookingCompleted) {
     const picName = `${date} ${courseName} ${courseID?.name || " "}`; 
     const screenshotDir = path.resolve(PROJECT_ROOT, 'screenshots');
     await mkdir(screenshotDir, { recursive: true });
@@ -490,6 +499,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     console.log(`Buchungsfoto kann in \"screenshots\"-Ordner gefunden werden`);
     console.log("Browser wird geschlossen, bitte haben Sie etwas Geduld...");
     await new Promise(resolve => setTimeout(resolve,2000));
+    }
     await browser.close();
     await menu();
   }
