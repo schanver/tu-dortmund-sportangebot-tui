@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-
+import fs from 'fs';
 import 'dotenv/config';
 import { PROJECT_ROOT } from './../src/config.js';
 
@@ -40,16 +40,16 @@ const testCredentials = () => {
       console.debug(chalk.greenBright("Persönliche Informationen sind eingegeben!"));
       console.log(chalk.yellow("Bitte überprüfen Sie die ausgefüllte Daten!"));
       console.log(`
-Name: ${name} 
-Nachname: ${nachname}
-Straßenummer: ${street_no}
-PLZ & Stadt: ${plz_stadt}
-Matrikelnummer: ${matrikel_no}
-Email: ${email}
-Telefonnumer: ${phone_no}
-Dienstleistungnummer: ${dl_no}
-Zustand: ${status}
-Geschlecht: ${geschlecht}
+Name: ${name || " " }   
+Nachname: ${nachname || " " }  
+Straßenummer: ${street_no || " " }  
+PLZ & Stadt: ${plz_stadt || " " }  
+Matrikelnummer: ${matrikel_no || " " }  
+Email: ${email || " " }  
+Telefonnumer: ${phone_no || " " }  
+Dienstleistungnummer: ${dl_no || " " }  
+Zustand: ${status || " " }  
+Geschlecht: ${geschlecht || " " }  
 `);
       process.exit(0);
     } catch (error) {

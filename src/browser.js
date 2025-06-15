@@ -1,5 +1,6 @@
 import boxen from 'boxen';
 import chalk from "chalk";
+import { chromium, firefox } from 'playwright';
 import puppeteer from "puppeteer";
 import inquirer  from "inquirer";
 import InterruptedPrompt from "inquirer-interrupted-prompt";
@@ -15,7 +16,15 @@ import { saveToJson } from "./database.js";
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await puppeteer.launch({headless: 'shell'});
+const browser = await chromium.launch({
+    headless: false,
+    args: [
+      '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
+      '--disable-popup-blocking',
+      '--disable-translate',
+      '--disable-notifications'
+    ]
+  });
 //const browser = await puppeteer.launch({headless: false});  // For debugging
 let bookingCompleted = false;
 
@@ -48,7 +57,7 @@ function stripAnsi(str) {
 }
 
 // To speed up load time when testing without headless mode
-const dontLoadMediaContent = async (page) => {
+/*const dontLoadMediaContent = async (page) => {
   // Do not load media or styles to save some loading time 
   await page.setRequestInterception(true);
   page.on('request', (request) => {
@@ -60,7 +69,7 @@ const dontLoadMediaContent = async (page) => {
       request.continue();
     }
   });
-};
+};*/
 
 export const selectCourse = async () => {
 console.clear();
@@ -90,7 +99,7 @@ pageSize: 20
 
 export const bookSportsCard = async () => {
   let page = await browser.newPage();
-  await dontLoadMediaContent(page);
+  //await dontLoadMediaContent(page);
   await page.goto
   (
     'https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/_SPORTKARTE.html',
@@ -130,11 +139,13 @@ export const bookSportsCard = async () => {
 };
 
 const selectCourseDay = async (courseName) => {
-
-  let page = await browser.newPage();
-  await page.setViewport({ width: 1980, height: 1200 });
+   let context = await browser.newContext({
+    viewport: null
+  });
+  let page = await context.newPage();
+  //await page.setViewport({ width: 1980, height: 1200 });
   
-  await dontLoadMediaContent(page);
+  //await dontLoadMediaContent(page);
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
@@ -157,11 +168,15 @@ const selectCourseDay = async (courseName) => {
             // Scroll into view of the anchor element
             await page.evaluate(el => el.scrollIntoView(), anchor);
             if(isDebugMode) console.debug('Clicken auf ' + courseName + '...');
-            await anchor.click();
-            found = true;
+          const oldContent = await page.content();
+          await anchor.click();
+
+          await page.waitForFunction(old => document.body.innerHTML !== old, oldContent, {
+            timeout: 10000
+          });
+          found = true;
             if(isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
             // Wait for the navigation to complete
-            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 });
             break; 
           }  
         }
@@ -287,21 +302,29 @@ const selectCourseDay = async (courseName) => {
   //console.log(courseName + " " + courseID.name);
       if(isDebugMode) console.debug(`Die Taste mit dem ID ${courseID} wurde geclickt...`);
 
-      // Press the link and wait for the target tab
-      const pageTarget = await page.target();
-      const [newTarget] = await Promise.all([
-        browser.waitForTarget((target) => target.opener() === pageTarget),
-        page.click(`input[type="submit"][name="${courseID.id}"]`),
-      ]).catch(error => {
-      console.error("Fehler beim Clicken auf der Taste oder Wartung auf das Ziel:", error);
-      return null; // Return null if there's an error
-    });
+  context = page.context();
+
+  try {
+    // Wait for a new page to be opened by the click
+    const [newPage] = await Promise.all([
+      context.waitForEvent('page'),
+      page.click(`input[type="submit"][name="${courseID.id}"]`),
+    ]);
+
+    // Switch page reference to the new tab
+    page = newPage;
+
+    // Wait for network idle on the new page
+    await page.waitForLoadState('networkidle');
+
+    // Now you can continue using 'page' as the new tab
+  } catch (error) {
+    console.error("Fehler beim Clicken auf der Taste oder Wartung auf das Ziel:", error);
+    page = null; // or handle error as needed
+  }
     // Change the current page 
-    page = await newTarget.page() // if this fixes the issue...
-    await page.waitForNetworkIdle();
     const title = await page.title();
-    await page.setViewport({ width: 1980, height: 1200 });
-    if(isDebugMode) console.debug(title);
+    if(isDebugMode) console.debug("This is the title of date thingy: " + title);
 
   const dateSelector = await page.$$(".bs_form_uni.bs_left.padding0");
   // This is used to differentiate weekly and one-time bookings; if this selector is present, then it is a weekly booking 
@@ -339,154 +362,139 @@ const selectCourseDay = async (courseName) => {
 
 const fillCredentials = async (page, courseName, courseID,date) => {
   
+try {
+  console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
+
+  await page.locator(`input[name="sex"][value="${process.env.GESCHLECHT}"]`).check();
+
+  await page.locator('#BS_F1100').click();
+  await page.locator('#BS_F1100').fill(process.env.NAME || "");
+
+  await page.locator('#BS_F1200').click();
+  await page.locator('#BS_F1200').fill(process.env.NACHNAME || "");
+
+  await page.locator('#BS_F1300').click();
+  await page.locator('#BS_F1300').fill(process.env.STRASSE_NR);
+
+  await page.locator('#BS_F1400').click();
+  await page.locator('#BS_F1400').fill(process.env.PLZ_STADT);
+
+  if (isDebugMode) {
+    console.debug(`Name: ${process.env.NAME}`);
+    console.debug(`Nachname: ${process.env.NACHNAME}`);
+    console.debug(`Straßenummer: ${process.env.STRASSE_NR}`);
+    console.debug(`PLZ und Stadt: ${process.env.PLZ_STADT}`);
+  }
+
+  // Status auswählen
+  const userStatus = visitorStatus[parseInt(process.env.STATUS)];
+  await page.locator('#BS_F1600').selectOption(userStatus);
+
+  if (isDebugMode) console.debug(`Status: ${userStatus}`);
+
+  const matriculationField = page.locator('#BS_F1700');
+  if (await matriculationField.isVisible() && await matriculationField.isEnabled()) {
+    await matriculationField.click();
+    await matriculationField.fill(process.env.MATRIKEL_NR);
+    if (isDebugMode) console.debug(`Matrikelnummer: ${process.env.MATRIKEL_NR}`);
+  }
+
+  const phoneField = page.locator('#BS_F1800');
+  if (await phoneField.isVisible() && await phoneField.isEnabled()) {
+    await phoneField.click();
+    await phoneField.fill(process.env.DIENSTL_NR);
+    if (isDebugMode) console.debug(`Dienstleistungsnummer: ${process.env.DIENSTL_NR}`);
+  }
+
+  if (isDebugMode) console.debug(`Email: ${process.env.EMAIL}`);
+  await page.locator('#BS_F2000').click();
+  await page.locator('#BS_F2000').fill(process.env.EMAIL);
+
+  if (isDebugMode) console.debug(`Telefonnummer: ${process.env.TELEFON_NR}`);
+  await page.locator('#BS_F2100').click();
+  await page.locator('#BS_F2100').fill(process.env.TELEFON_NR);
+
+  const ibanField = page.locator('#BS_F_iban');
+  if (await ibanField.isVisible() && await ibanField.isEnabled()) {
+    await ibanField.click();
+    await ibanField.fill(process.env.IBAN);
+  }
+
+  // Teilnahmebedingungen akzeptieren
+  await page.locator('input[type="checkbox"][name="tnbed"]').check();
+
+  // Submit-Button klicken
+  const submit = page.locator('#bs_submit');
+  await submit.scrollIntoViewIfNeeded();
+  await submit.waitFor({ state: 'visible' });
+  await submit.click();
+
+  if (isDebugMode) console.log('Submit button clicked – waiting for validation...');
+
+  // Auf mögliche Warnungen warten
   try {
-
-    console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
-    await page.waitForSelector(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
-    await page.click(`input[name="sex"][value="${process.env.GESCHLECHT}"]`);
-    const nameTextField = await page.$('#BS_F1100');
-    await nameTextField.click();
-    await nameTextField.type(process.env.NAME || "");
-
-    const surnameTextField = await page.$('#BS_F1200');
-    await surnameTextField.click();
-    await surnameTextField.type(process.env.NACHNAME || "");
-
-    const streetNoTextField = await page.$('#BS_F1300');
-    await streetNoTextField.click();
-    await streetNoTextField.type(process.env.STRASSE_NR);
-
-    const plz_cityTextField = await page.$('#BS_F1400');
-    await plz_cityTextField.click();
-    await plz_cityTextField.type(process.env.PLZ_STADT);
-
-    if(isDebugMode) {
-      console.debug(`Name: ${process.env.NAME}`);
-      console.debug(`Nachname: ${process.env.NACHNAME}`);
-      console.debug(`Straßenummer: ${process.env.STRASSE_NR}`);
-      console.debug(`PLZ und Stadt: ${process.env.PLZ_STADT}`);
-    }
-
-
-
-    const userStatus = visitorStatus[parseInt(process.env.STATUS)];
-    const status = await page.$('#BS_F1600');
-    await status.select(userStatus);
-
-    if(isDebugMode) console.debug(`Status: ${userStatus}`);
-
-    let isDisabled;
-    const matriculationNumber = await page.$('#BS_F1700');
-    if(matriculationNumber) {
-      isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), matriculationNumber);
-      if(!isDisabled) {
-        await matriculationNumber.click();
-        await matriculationNumber.type(process.env.MATRIKEL_NR);
-        if(isDebugMode) console.debug(`Matrikelnummer: ${process.env.MATRIKEL_NR}`);
-      }
-    }
-   
-
-    const officialPhone = await page.$('#BS_F1800');
-    if(officialPhone) {
-    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), officialPhone);
-    if(!isDisabled) {
-      await officialPhone.click();
-      await officialPhone.type(process.env.DIENSTL_NR);
-      if(isDebugMode) console.debug(`Dienstleistungsnummer: ${process.env.DIENSTL_NR}`);
-    }
-    }
-
-    if(isDebugMode) console.debug(`Email: ${process.env.EMAIL}`);
-    const email = await page.$('#BS_F2000');
-    await email.click();
-    await email.type(process.env.EMAIL);
-
-    if(isDebugMode) console.debug(`Telefonnummer: ${process.env.TELEFON_NR}`);
-    const phoneNo = await page.$('#BS_F2100');
-    await phoneNo.click();
-    await phoneNo.type(process.env.TELEFON_NR);
-
-    const iban = await page.$('#BS_F_iban');
-    if(iban) {
-    isDisabled = await page.evaluate(el => el.hasAttribute('disabled'), iban);
-    if(!isDisabled) {
-      await iban.click();
-      await iban.type(process.env.IBAN);
-    }
-    }
-
-    await page.click('input[type="checkbox"][name="tnbed"]');
-    const submit = await page.$('#bs_submit');
-    await page.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }),submit);
-    await page.waitForSelector('#bs_submit', {visible: true });
-    await page.click('#bs_submit');
-
-    if (isDebugMode) console.log('Submit button clicked – waiting for validation...');
-
-    // Wait for validation errors to appear
     await page.waitForFunction(() => {
       return document.querySelectorAll('.warn').length > 0;
-    }, { timeout: 6000 }).catch(() => {
-      if (isDebugMode) console.log('No validation warnings appeared.');
-    });
-
-    // Collect any warnings
-    const warnings = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('.bs_form_row.warn'))
-        .map(row => {
-          const label = row.querySelector('label');
-          return label ? label.textContent.trim() : 'Unknown field';
-        });
-    });
-
-    if (warnings.length > 0) {
-      console.log("⚠️ Validation warnings found:");
-      warnings.forEach(w => console.log(" -", w));
-      process.exit(0);
-    } else {
-      console.log("✅ No warnings – proceeding.");
-    }
-
-    await page.waitForNetworkIdle();
-    await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]');
-
-
-
-    // Click the submit button
-    const verbindlichBtn = 'input[type="submit"][value="verbindlich buchen"]';
-    const kostenpfichtigBtn = 'input[tpye="submit"][value="kostepflichtig buchen"]';
-    if(verbindlichBtn) await page.click(verbindlichBtn);
-    else if(kostenpfichtigBtn) await page.click(kostenpfichtigBtn);
-        else console.log("Keine verfügbare Button gefunden!");
-
-
-    if(isDebugMode) console.log('Auf dem Submit-Button geclickt...');
-    await page.waitForNetworkIdle();
-
-    const alreadyBooked = await page.$('form[name="bsform"] .bs_meldung') !== null;
-    if(isDebugMode) console.debug(alreadyBooked);
-    if(alreadyBooked) {
-      const bookingMessage = await page.$eval('form[name="bsform"] .bs_meldung', el => el.innerText.trim());
-      console.log(chalk.yellow("Meldung vom Buchungssystem:"));
-      console.log(bookingMessage);
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      await menu();
-    }
-    else {
-      console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht!"));
-      bookingCompleted = true;
-      if(isDebugMode) console.debug("Buchungszustand " + bookingCompleted);
-     await saveToJson(
-        {
-          courseName: `${courseName} ${courseID?.name || " "}`, 
-          courseDate: date || " ", 
-          courseTime: courseID?.time || " "
-        }
-      );
-      await new Promise(resolve => setTimeout(resolve, 3000));
-    }
+    }, { timeout: 6000 });
+  } catch (e) {
+    if (isDebugMode) console.log('No validation warnings appeared.');
   }
+
+  // Warnungen sammeln
+  const warnings = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.bs_form_row.warn'))
+      .map(row => {
+        const label = row.querySelector('label');
+        return label ? label.textContent.trim() : 'Unknown field';
+      });
+  });
+
+  if (warnings.length > 0) {
+    console.log("⚠️ Das/die folgende(n) Feld(er) ist/sind entweder falsch ausgefüllt oder lee");
+    warnings.forEach(w => console.log(" -", w));
+    process.exit(0);
+  } else {
+    console.log("✅ No warnings – proceeding.");
+  }
+
+  await page.waitForLoadState('networkidle');
+  await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]', { timeout: 5000 });
+
+  const verbindlichBtn = page.locator('input[type="submit"][value="verbindlich buchen"]');
+  const kostenpflichtigBtn = page.locator('input[type="submit"][value="kostenpflichtig buchen"]');
+
+  if (await verbindlichBtn.isVisible()) {
+    await verbindlichBtn.click();
+  } else if (await kostenpflichtigBtn.isVisible()) {
+    await kostenpflichtigBtn.click();
+  } else {
+    console.log("Keine verfügbare Button gefunden!");
+  }
+
+  if (isDebugMode) console.log('Auf dem Submit-Button geclickt...');
+  await page.waitForLoadState('networkidle');
+
+  const alreadyBooked = await page.locator('form[name="bsform"] .bs_meldung').isVisible();
+  if (alreadyBooked) {
+    const bookingMessage = await page.locator('form[name="bsform"] .bs_meldung').innerText();
+    console.log(chalk.yellow("Meldung vom Buchungssystem:"));
+    console.log(bookingMessage);
+    await page.waitForTimeout(5000);
+    await menu();
+  } else {
+    console.log(chalk.greenBright("Der Kurs ist erfolgreich gebucht!"));
+    bookingCompleted = true;
+    if (isDebugMode) console.debug("Buchungszustand " + bookingCompleted);
+    await saveToJson({
+      courseName: `${courseName} ${courseID?.name || " "}`,
+      courseDate: date || " ",
+      courseTime: courseID?.time || " "
+    });
+    await page.waitForTimeout(3000);
+  }
+} catch (error) {
+  console.error("❌ Fehler im Buchungsprozess:", error);
+}
   finally {
     if(bookingCompleted) {
     const picName = `${date} ${courseName} ${courseID?.name || " "}`; 
