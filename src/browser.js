@@ -1,7 +1,6 @@
 import boxen from 'boxen';
 import chalk from "chalk";
 import { chromium, firefox } from 'playwright';
-import puppeteer from "puppeteer";
 import inquirer  from "inquirer";
 import InterruptedPrompt from "inquirer-interrupted-prompt";
 import autocompletePrompt from "inquirer-autocomplete-prompt";
@@ -16,16 +15,9 @@ import { saveToJson } from "./database.js";
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browser = await chromium.launch({
-    headless: false,
-    args: [
-      '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
-      '--disable-popup-blocking',
-      '--disable-translate',
-      '--disable-notifications'
-    ]
-  });
-//const browser = await puppeteer.launch({headless: false});  // For debugging
+const browserName = (process.env.BROWSER || 'chromium').toLowerCase();
+const browsers = { chromium, firefox };
+export const browserType = browsers[browserName] || chromium;
 let bookingCompleted = false;
 
 export const visitorStatus = [
@@ -45,6 +37,7 @@ export const visitorStatus = [
 ];
 let courseList = [];
 
+
 async function searchCourses(_, input) {
 
   input = input || '';
@@ -56,21 +49,6 @@ function stripAnsi(str) {
     return str.replace(/\x1B\[[0-9;]*m/g, '');
 }
 
-// To speed up load time when testing without headless mode
-/*const dontLoadMediaContent = async (page) => {
-  // Do not load media or styles to save some loading time 
-  await page.setRequestInterception(true);
-  page.on('request', (request) => {
-    const url = request.url();
-    const resourceType = request.resourceType();
-    if(resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'media' || url.endsWith('.svg')) {
-      request.abort();
-    } else {
-      request.continue();
-    }
-  });
-};*/
-
 export const selectCourse = async () => {
 console.clear();
 console.log(await showBanner());
@@ -79,7 +57,7 @@ courseList = await fetchList();
 const courses = await inquirer.prompt({
 type: 'autocomplete',
 name: 'selectedCourse',
-message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein, drücken Sie die Taste <ESC>, um zurück zum Hauptmenü zu gehen',
+message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein, drücken Sie die Taste <ESC>, um zurück zum Hauptmenü zu gehen, dein Browser ist:' + browserName,
 searchText: 'Suche nach dem Kurs...',
 emptyText: 'Keine Kurse gefunden!',
 source : searchCourses,
@@ -98,76 +76,105 @@ pageSize: 20
 };
 
 export const bookSportsCard = async () => {
-  let page = await browser.newPage();
-  //await dontLoadMediaContent(page);
+  const browser = await browserType.launch({
+    headless: false,
+    args: [
+      '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
+      '--disable-popup-blocking',
+      '--disable-translate',
+      '--disable-notifications'
+    ]
+  });
+  const context = await browser.newContext();
+  let page = await context.newPage();
   await page.goto
-  (
+(
     'https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/_SPORTKARTE.html',
     {
       timeout: 20000
     }
   );
-  
-  const bookingMenu = await page.$('.bs_kurse');
-  if(bookingMenu) {
-    console.log("Buchungsmenu ist gefunden!");
-  }
- 
- const bookingAvailable = await page.evaluate(async () => {
-    const rows = document.querySelectorAll('.bs_kurse tbody tr');
-    for (const row of rows) {
-      const cells = row.querySelectorAll('td');
-      if (!cells.length) continue;
-      const lastCell = cells[cells.length - 1];
-      const button = lastCell.querySelector('input[type="submit"].bs_btn_buchen');
-      if (button) {
-        console.log("Buchung verfügbar:", button.name);
-        await new Promise(resolve => setTimeout(resolve, 2000)); 
-        button.click(); 
-        return { success: true, buttonName: button.name };
-      }
-    }
-    return { success: false };
-  });
 
-  if (bookingAvailable.success) {
-    console.log(`🎉 Buchung wurde eingeleitet: ${bookingAvailable.buttonName}`);
+  const bookingMenu = await page.$('.bs_kurse');
+ if (bookingMenu) {
+    console.log('✅ Buchungsmenü ist gefunden!');
   } else {
-    console.error("❌ Keine Buchung derzeit verfügbar.");
+    console.error('❌ Buchungsmenü nicht gefunden.');
+    await browser.close();
     process.exit(1);
   }
+
+  const rows = await page.$$('.bs_kurse tbody tr');
+  let bookingSuccessful = false;
+
+  for (const row of rows) {
+    try {
+      const button = await row.$('td:last-child input[type="submit"].bs_btn_buchen');
+      if (button) {
+        const buttonName = await button.getAttribute('name');
+        console.log(`🎯 Buchung verfügbar: ${buttonName}`);
+
+        const [newPage] = await Promise.all([
+          context.waitForEvent('page'),
+          page.click(`input[type="submit"][name="${buttonName}"]`),
+        ]);
+
+        page = newPage;
+        await page.waitForLoadState('networkidle');
+
+        console.log(`🎉 Buchung wurde eingeleitet: ${buttonName}`);
+        bookingSuccessful = true;
+        break;
+      }
+    } catch (error) {
+      console.error('❌ Fehler beim Buchen:', error);
+    }
+  }
+
+  if (!bookingSuccessful) {
+    console.error('❌ Keine Buchung derzeit verfügbar.');
+    await browser.close();
+    process.exit(1);
+  }
+  await fillCredentials(page, 'SPORTKARTE', '', '');
 };
 
 const selectCourseDay = async (courseName) => {
-   let context = await browser.newContext({
+  const browser = await browserType.launch({
+    headless: false,
+    args: [
+      '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
+      '--disable-popup-blocking',
+      '--disable-translate',
+      '--disable-notifications'
+    ]
+  });
+  let context = await browser.newContext({
     viewport: null
   });
-  let page = await context.newPage();
-  //await page.setViewport({ width: 1980, height: 1200 });
-  
-  //await dontLoadMediaContent(page);
+ let page = await context.newPage();
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {
       timeout: 20000
     });
-    // Wait for the main div to load
-    await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
-    const container = await page.$('div#bs_content dl.bs_menu');
+  // Wait for the main div to load
+  await page.waitForSelector('div#bs_content dl.bs_menu', { timeout: 6000 });
+  const container = await page.$('div#bs_content dl.bs_menu');
 
-    if(container) {
-      if(isDebugMode) console.debug(`Suche nach dem Kurs ${courseName}`);
-      const anchors = await page.$$('a');
-      if(anchors.length > 0) 
-      {
-        let found = false;
-        for(const anchor of anchors) {
-          const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
-          if(isDebugMode) console.debug(`Vergleich von ${anchorText} mit ${courseName}...`);
-          if(anchorText.toLowerCase() === courseName.toLowerCase()) {
-            // Scroll into view of the anchor element
-            await page.evaluate(el => el.scrollIntoView(), anchor);
-            if(isDebugMode) console.debug('Clicken auf ' + courseName + '...');
+  if(container) {
+    if(isDebugMode) console.debug(`Suche nach dem Kurs ${courseName}`);
+    const anchors = await page.$$('a');
+    if(anchors.length > 0) 
+  {
+      let found = false;
+      for(const anchor of anchors) {
+        const anchorText = await page.evaluate(el => el.textContent.trim(), anchor); // Use trim to remove any extra spaces
+        if(isDebugMode) console.debug(`Vergleich von ${anchorText} mit ${courseName}...`);
+        if(anchorText.toLowerCase() === courseName.toLowerCase()) {
+          // Scroll into view of the anchor element
+          await page.evaluate(el => el.scrollIntoView(), anchor);
+          if(isDebugMode) console.debug('Clicken auf ' + courseName + '...');
           const oldContent = await page.content();
           await anchor.click();
 
@@ -175,26 +182,26 @@ const selectCourseDay = async (courseName) => {
             timeout: 10000
           });
           found = true;
-            if(isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
-            // Wait for the navigation to complete
-            break; 
-          }  
-        }
-        if(!found) { 
-          console.error("Dieser Kurs ist leider nicht gefunden!");
-          await selectCourse();
-          process.exit(0);
-        }
+          if(isDebugMode) console.debug(`Auf ${courseName} geclickt...`);
+          // Wait for the navigation to complete
+          break; 
+        }  
+      }
+      if(!found) { 
+        console.error("Dieser Kurs ist leider nicht gefunden!");
+        await selectCourse();
+        process.exit(0);
       }
     }
+  }
 
-    const bookingMenu = await page.$('.bs_kurse');
-    if(bookingMenu) {
-      if(isDebugMode) console.debug("Buchungsmenu ist gefunden...");
-      await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
-    }
+  const bookingMenu = await page.$('.bs_kurse');
+  if(bookingMenu) {
+    if(isDebugMode) console.debug("Buchungsmenu ist gefunden...");
+    await page.evaluate(el => el.scrollIntoView({behavior: 'smooth', block: 'center'}), bookingMenu);
+  }
 
-    
+
   const {tableData,courseIDs} = await page.evaluate(() => {
     const rows = document.querySelectorAll('.bs_kurse tbody tr');
     let data = []
@@ -225,28 +232,28 @@ const selectCourseDay = async (courseName) => {
           }
           else if(index == 4) { // Location of the course
             tableObject.place = cell.innerHTML ? 
-                                    cell.innerHTML.replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
-                                    .replace(/<br\s*\/?>/gi, ' ')
-                                    .trim() : "";
+              cell.innerHTML.replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
+              .replace(/<br\s*\/?>/gi, ' ')
+              .trim() : "";
           } 
           else if(index == cells.length - 1) { // Booking button or status
             const button = cell.querySelector('input[type="submit"]');
             if(button) {
               console.log(button.name);
               if(button.classList.contains('bs_btn_buchen')) { // Booking button available
-              tableObject.status = button.value.trim();
-              tableObject.id = button.name;
-              localIDs.push(tableObject.id);
-            } 
+                tableObject.status = button.value.trim();
+                tableObject.id = button.name;
+                localIDs.push(tableObject.id);
+              } 
               else if(button.classList.contains('bs_btn_ausgebucht')) { // Course is fully booked
-              tableObject.status = button.value.trim();
-              tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
-              localIDs.push(button.name);
-            }
+                tableObject.status = button.value.trim();
+                tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
+                localIDs.push(button.name);
+              }
               else if(button.classList.contains('bs_btn_warteliste')) {
-              tableObject.status = button.value.trim();
-              tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
-              localIDs.push(button.name);
+                tableObject.status = button.value.trim();
+                tableObject.disabled = 'Dieser Kurs ist ausgebucht!';
+                localIDs.push(button.name);
               }
             }
             else { // No booking button available
@@ -273,34 +280,32 @@ const selectCourseDay = async (courseName) => {
       disabled : isDisabled,
     };
   });
-    
-    const germanText = await page.$eval('.bs_kursbeschreibung .bslang_de', el => el.innerText.trim());
-    console.log(boxen(germanText));
-    // Print the list of available courses
-    const availableCourses = await inquirer.prompt(
-      {
-        type:'list',
-        name:'bookSelectedCourse',
-        message:'Welchen Kurs möchten Sie buchen?',
-        choices: courseInfoCombined
-      })
-      .catch(async (error) => {
-        if(error.isTtyError) {
-        } else {
-          if(error === InterruptedPrompt.EVENT_INTERRUPTED) {
-            await selectCourse();
-          }
+
+  const germanText = await page.$eval('.bs_kursbeschreibung .bslang_de', el => el.innerText.trim());
+  console.log(boxen(germanText));
+  // Print the list of available courses
+  const availableCourses = await inquirer.prompt(
+    {
+      type:'list',
+      name:'bookSelectedCourse',
+      message:'Welchen Kurs möchten Sie buchen?',
+      choices: courseInfoCombined
+    })
+    .catch(async (error) => {
+      if(error.isTtyError) {
+      } else {
+        if(error === InterruptedPrompt.EVENT_INTERRUPTED) {
+          await selectCourse();
         }
-      });
+      }
+    });
   const courseParts = availableCourses.bookSelectedCourse.split(",");
   const courseID = tableData.find(obj => 
     obj.name === stripAnsi(courseParts[0]) &&
-    obj.day  === stripAnsi(courseParts[1]) &&
-    obj.time === stripAnsi(courseParts[2])
-);
-  //console.log(courseID);  
-  //console.log(courseName + " " + courseID.name);
-      if(isDebugMode) console.debug(`Die Taste mit dem ID ${courseID} wurde geclickt...`);
+      obj.day  === stripAnsi(courseParts[1]) &&
+      obj.time === stripAnsi(courseParts[2])
+  );
+  if(isDebugMode) console.debug(`Die Taste mit dem ID ${courseID} wurde geclickt...`);
 
   context = page.context();
 
@@ -322,9 +327,9 @@ const selectCourseDay = async (courseName) => {
     console.error("Fehler beim Clicken auf der Taste oder Wartung auf das Ziel:", error);
     page = null; // or handle error as needed
   }
-    // Change the current page 
-    const title = await page.title();
-    if(isDebugMode) console.debug("This is the title of date thingy: " + title);
+  // Change the current page 
+  const title = await page.title();
+  if(isDebugMode) console.debug("This is the title of date thingy: " + title);
 
   const dateSelector = await page.$$(".bs_form_uni.bs_left.padding0");
   // This is used to differentiate weekly and one-time bookings; if this selector is present, then it is a weekly booking 
@@ -339,14 +344,16 @@ const selectCourseDay = async (courseName) => {
 
       return bookingDate;
     }, dateSelector[0]);
-    
+
 
     // Click on the button if it has "buchen" on the name   
     const bookingButton = await page.$('input[type="submit"][class="inlbutton buchen"][value="buchen"]');
     // Ensure the button exists
     if(bookingButton) { 
-      await bookingButton.click();
-      await page.waitForNavigation({ waitUntil: 'networkidle0' }); // Wait for the navigation or network idle
+      await Promise.all([
+        page.waitForLoadState('networkidle'),
+        bookingButton.click()
+      ]);
       await fillCredentials(page,courseName, courseID, divText[1]);
     } else {
       console.error("Keine Taste zur Buchung ist verfügbar");
@@ -362,7 +369,7 @@ const selectCourseDay = async (courseName) => {
 
 const fillCredentials = async (page, courseName, courseID,date) => {
   
-try {
+  try {
   console.log("Die Textfelder wird ausgefüllt, bitte haben Sie etwas Geduld...");
 
   await page.locator(`input[name="sex"][value="${process.env.GESCHLECHT}"]`).check();
@@ -456,8 +463,7 @@ try {
   } else {
     console.log("✅ No warnings – proceeding.");
   }
-
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadStte('networkidle');
   await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]', { timeout: 5000 });
 
   const verbindlichBtn = page.locator('input[type="submit"][value="verbindlich buchen"]');
@@ -473,7 +479,6 @@ try {
 
   if (isDebugMode) console.log('Auf dem Submit-Button geclickt...');
   await page.waitForLoadState('networkidle');
-
   const alreadyBooked = await page.locator('form[name="bsform"] .bs_meldung').isVisible();
   if (alreadyBooked) {
     const bookingMessage = await page.locator('form[name="bsform"] .bs_meldung').innerText();

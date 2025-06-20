@@ -1,10 +1,11 @@
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright';
 import { isDebugMode } from '../index.js';
-
+import { browserType } from './browser.js';
+//
 // This should fetch the list
 
 export async function fetchList() {
-  const browser = await puppeteer.launch({headless: 'shell'});
+  const browser = await browserType.launch({headless: true});
   let page = await browser.newPage();
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
