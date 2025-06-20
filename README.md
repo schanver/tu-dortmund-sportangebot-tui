@@ -53,6 +53,9 @@ IBAN=
 
 #Für Debugging / For Debugging
 DEBUG=false
+
+#Von Playwright benutzende Browser (chromium oder firefox)
+BROWSER=firefox | chromium
 ```
 
 Then run the tests with:
