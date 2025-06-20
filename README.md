@@ -1,9 +1,9 @@
-# tu-dortmund-sportangebot-cli
-A command-line application to book for sports events in TU Dortmund. This README file is written in English. If you want to read the German version, you can read it [here](README.de.md)
+# tu-dortmund-sportangebot-tui
+A terminal application to book for sports events in TU Dortmund. This README file is written in English. If you want to read the German version, you can read it [here](README.de.md)
 # Installation
 Clone the repository to the desired location using the following command:
 ```bash
-git clone https://github.com/schanver/tu-dortmund-sportangebot-cli.git
+git clone https://github.com/schanver/tu-dortmund-sportangebot-tui.git
 ````
 Afterwards change into the project directory and type:
 ```bash

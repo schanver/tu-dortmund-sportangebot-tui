@@ -1,12 +1,12 @@
-# tu-dortmund-sportangebot-cli 
-Eine Kommandozeilenanwendung zur Buchung von Sportveranstaltungen an der TU Dortmund.
+# tu-dortmund-sportangebot-tui 
+Eine Terminalanwendung zur Buchung von Sportveranstaltungen an der TU Dortmund.
 Diese README ist auf Deutsch geschrieben. Englische Version davon kann [hier](README.md) zu finden.
 # Installation
 
 Klonen Sie das Repository mit folgendem Kommando an den gewünschten Ort:
 
 ```bash
-git clone https://github.com/schanver/tu-dortmund-sportangebot-cli.git
+git clone https://github.com/schanver/tu-dortmund-sportangebot-tui.git
 ```
 
 Wechseln Sie anschließend in das Projektverzeichnis und geben Sie ein:
