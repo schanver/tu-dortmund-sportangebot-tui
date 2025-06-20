@@ -1,10 +1,11 @@
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright';
 import { isDebugMode } from '../index.js';
-
+import { browserType } from './browser.js';
+//
 // This should fetch the list
 
 export async function fetchList() {
-  const browser = await puppeteer.launch({headless: 'shell'});
+  const browser = await browserType.launch({headless: true});
   let page = await browser.newPage();
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
@@ -18,6 +19,7 @@ export async function fetchList() {
     // Retrieve all course names within the menu
     const courseNames = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('div#bs_content dl.bs_menu a'))
+        .filter(anchor => !["SPORTKARTE","alle freien Kursplätze dieses Zeitraums"].includes(anchor.textContent.trim()))
         .map(anchor => anchor.textContent.trim());
     });
     if(isDebugMode) console.debug("Kursliste ist abgerufen.");

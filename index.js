@@ -4,17 +4,19 @@ import boxen from 'boxen';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
 import path from 'path';
-import { selectCourse } from './src/browser.js';
+import { selectCourse, bookSportsCard } from './src/browser.js';
 import { getUpcomingCourses } from './src/database.js';
 import { PROJECT_ROOT } from './src/config.js';
 
 InterruptedPrompt.fromAll(inquirer);
 
-export let isDebugMode = process.env.DEBUG==="true";
 dotenv.config({ path: path.resolve(PROJECT_ROOT, '.env') });
+
+export let isDebugMode = process.env.DEBUG==="true";
 
 const menuChoices = [
   "Für einen Kurs anmelden",
+  "Sportkarte erwerben",
   "Angemeldete Kurse anzeigen",
   "Program beenden"
 ];
@@ -26,12 +28,12 @@ const banner = `
      "# #   #  #   #   #       #    m"""#  #   #  #   #  #""""  #   #  #   #    #   
  "mmm#" ##m#"  "#m#"   #       "mm  "mm"#  #   #  "#m"#  "#mm"  ##m#"  "#m#"    "mm 
         #                                          m  #                             
-        "                                           ""   v1.0.1                 
+        "                                           ""   v1.0.2                 
 `; 
 
 
 export const showBanner = async () => {
-    const bannerBoard = boxen(chalk.bold(banner), { borderStyle: 'singleDouble', align : 'left' });
+    const bannerBoard = boxen(chalk.bold.green(banner), { borderStyle: 'singleDouble', align : 'left' });
     return bannerBoard;
 }
 
@@ -40,6 +42,7 @@ export const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
+  if(isDebugMode) console.log(chalk.gray("DEBUG MODE is on"));
   const menuScreen = await inquirer.prompt(
     {
       type: "list",
@@ -62,9 +65,12 @@ export const menu = async () => {
       await selectCourse();
       break;
     case menuChoices[1]:
-      await getUpcomingCourses();
+      await bookSportsCard();
       break;
     case menuChoices[2]:
+      await getUpcomingCourses();
+      break;
+    case menuChoices[3]:
       console.log(chalk.bold("Program beendet.Tschüss..."));
       process.exit(0);
   }
