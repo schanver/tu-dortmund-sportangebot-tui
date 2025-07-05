@@ -463,7 +463,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
   } else {
     console.log("✅ No warnings – proceeding.");
   }
-  await page.waitForLoadStte('networkidle');
+  await page.waitForLoadState('networkidle');
   await page.waitForSelector('input[type="submit"][value="verbindlich buchen"]', { timeout: 5000 });
 
   const verbindlichBtn = page.locator('input[type="submit"][value="verbindlich buchen"]');
@@ -513,7 +513,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
     console.log("Browser wird geschlossen, bitte haben Sie etwas Geduld...");
     await new Promise(resolve => setTimeout(resolve,2000));
     }
-    await browser.close();
+    await page.close();
     await menu();
   }
 
