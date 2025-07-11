@@ -77,7 +77,7 @@ pageSize: 20
 
 export const bookSportsCard = async () => {
   const browser = await browserType.launch({
-    headless: false,
+    headless: true,
     args: [
       '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
       '--disable-popup-blocking',
@@ -141,7 +141,7 @@ export const bookSportsCard = async () => {
 
 const selectCourseDay = async (courseName) => {
   const browser = await browserType.launch({
-    headless: false,
+    headless: true,
     args: [
       '--disable-features=AutofillCreditCardEnabled,AutofillSaveCardEnabled,AutofillIBANEnabled',
       '--disable-popup-blocking',
