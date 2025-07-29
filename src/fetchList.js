@@ -1,4 +1,3 @@
-import { chromium } from 'playwright';
 import { isDebugMode } from '../index.js';
 import { browserType } from './browser.js';
 //
@@ -6,7 +5,8 @@ import { browserType } from './browser.js';
 
 export async function fetchList() {
   const browser = await browserType.launch({headless: true});
-  let page = await browser.newPage();
+  const context = await browser.newContext();
+  let page = await context.newPage();
 
   await page.goto('https://www.buchsys.ahs.tu-dortmund.de/angebote/aktueller_zeitraum/', 
     {

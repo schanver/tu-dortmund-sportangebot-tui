@@ -15,8 +15,8 @@ import { saveToJson } from "./database.js";
 inquirer.registerPrompt('autocomplete',autocompletePrompt);
 InterruptedPrompt.fromAll(inquirer);
 
-const browserName = (process.env.BROWSER || 'chromium').toLowerCase();
-const browsers = { chromium, firefox };
+export const browserName = (process.env.BROWSER || 'chromium').toLowerCase();
+export const browsers = { chromium, firefox };
 export const browserType = browsers[browserName] || chromium;
 let bookingCompleted = false;
 
@@ -57,7 +57,7 @@ courseList = await fetchList();
 const courses = await inquirer.prompt({
 type: 'autocomplete',
 name: 'selectedCourse',
-message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein, drücken Sie die Taste <ESC>, um zurück zum Hauptmenü zu gehen, dein Browser ist:' + browserName,
+message: 'Bitte wählen Sie einen Kurs oder geben Sie den Kursname ein, drücken Sie die Taste <ESC>, um zurück zum Hauptmenü zu gehen',
 searchText: 'Suche nach dem Kurs...',
 emptyText: 'Keine Kurse gefunden!',
 source : searchCourses,
