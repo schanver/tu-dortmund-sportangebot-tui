@@ -45,7 +45,8 @@ export async function saveToJson(data) {
 export async function getUpcomingCourses() {
   if (!fs.existsSync(filePath)) {
     console.error(`Datei ${chalk.bold.yellow(filePath)} nicht gefunden.`);
-    return [];
+    console.debug("Erstellen einer JSON-Datei...");
+    fs.writeFileSync(filePath, JSON.stringify([], null, 2));
   }
 
   try {
