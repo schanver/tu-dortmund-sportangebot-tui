@@ -477,7 +477,7 @@ const fillCredentials = async (page, courseName, courseID,date) => {
   const alreadyBooked = await page.locator('form[name="bsform"] .bs_meldung').isVisible();
   if (alreadyBooked) {
     const bookingMessage = await page.locator('form[name="bsform"] .bs_meldung').innerText();
-    console.log(chalk.bgYellow("Meldung vom Buchungssystem:"));
+    console.log(chalk.yellow("Meldung vom Buchungssystem:"));
     console.log(bookingMessage);
     await page.waitForTimeout(5000);
     await menu();
