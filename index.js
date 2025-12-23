@@ -21,19 +21,12 @@ const menuChoices = [
   "Program beenden"
 ];
 
-const banner = `                                                                                 
-  mmmm                         m                                #               m   
- #"   " mmmm    mmm    m mm  mm#mm   mmm   m mm    mmmm   mmm   #mmm    mmm   mm#mm 
- "#mmm  #" "#  #" "#   #"  "   #    "   #  #"  #  #" "#  #"  #  #" "#  #" "#    #   
-     "# #   #  #   #   #       #    m"""#  #   #  #   #  #""""  #   #  #   #    #   
- "mmm#" ##m#"  "#m#"   #       "mm  "mm"#  #   #  "#m"#  "#mm"  ##m#"  "#m#"    "mm 
-        #                                          m  #                             
-        "                                           ""   v1.0.2                 
-`; 
+const banner = `${chalk.bold.greenBright("TU Dortmund Sportangebot TUI")}
+${chalk.bold.yellow("@github.com/schanver")}          ${chalk.bold.white("v1.1.0")}`
 
 
 export const showBanner = async () => {
-    const bannerBoard = boxen(chalk.bold.green(banner), { borderStyle: 'singleDouble', align : 'left' });
+    const bannerBoard = boxen(chalk.bold.green(banner), { borderStyle: 'none', align : 'center' });
     return bannerBoard;
 }
 
@@ -42,7 +35,7 @@ export const menu = async () => {
   const banner = await showBanner();
   console.clear();
   console.log(banner);
-  if(isDebugMode) console.log(chalk.gray("DEBUG MODE is on"));
+  if(isDebugMode) console.log(chalk.gray("DEBUG-MODUS ist an"));
   const menuScreen = await inquirer.prompt(
     {
       type: "list",
