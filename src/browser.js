@@ -290,6 +290,7 @@ const selectCourseDay = async (courseName) => {
       type:'list',
       name:'bookSelectedCourse',
       message:'Welchen Kurs möchten Sie buchen?',
+      pageSize: 10,
       choices: courseInfoCombined
     })
     .catch(async (error) => {
