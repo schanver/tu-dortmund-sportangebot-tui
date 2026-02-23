@@ -226,15 +226,23 @@ const selectCourseDay = async (courseName) => {
             tableObject.name = cell.textContent.trim();
           }
           else if (index == 2) { // Day of the course
-            tableObject.day = cell.innerHTML ? cell.innerHTML.split('<br>')[0].trim() : "";
+            tableObject.day = cell.innerHTML 
+              ? cell.innerHTML.split('<br>')[0]
+              .replace(/<[^>]*>/g, '')
+              .trim() 
+              : "";
           }
           else if (index == 3) { // Time of the course
-            tableObject.time = cell.innerHTML ? cell.innerHTML.split('<br>')[0].trim() : "";
+            tableObject.time = cell.innerHTML
+              ? cell.innerHTML.split('<br>')[0]
+              .replace(/<[^>]*>/g, '')
+              .trim()
+              : "";
           }
           else if (index == 4) { // Location of the course
             tableObject.place = cell.innerHTML ? 
               cell.innerHTML.replace(/<a[^>]*>(.*?)<\/a>/g, '$1')                              // Don't ask me what this regex does...
-              .replace(/<br\s*\/?>/gi, ' ')
+              .replace(/<[^>]*>/g, '')
               .trim() : "";
           } 
           else if (index == cells.length - 1) { // Booking button or status
